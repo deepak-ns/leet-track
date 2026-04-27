@@ -5,6 +5,7 @@ export type SaveDailyStatsInput = {
   date: string;
   totalSolved: number;
   todaySolved: number;
+  todaySolvedProblems?: string[];
   dailyTarget: number;
   backlog: number;
   streak: number;
@@ -16,6 +17,7 @@ export async function saveDailyStats({
   date,
   totalSolved,
   todaySolved,
+  todaySolvedProblems,
   dailyTarget,
   backlog,
   streak,
@@ -29,11 +31,24 @@ export async function saveDailyStats({
     backlog,
     streak,
     leetcode_username: leetcodeUsername,
+    today_solved_problems: todaySolvedProblems,
   };
 
-  async function saveUsingDateColumn(dateColumn: "stat_date" | "date") {
+  async function saveUsingDateColumn(
+    dateColumn: "stat_date" | "date",
+    includeSolvedProblems: boolean,
+  ) {
+    const payloadWithoutOptionalProblems = {
+      user_id: payloadBase.user_id,
+      total_solved: payloadBase.total_solved,
+      solved_today: payloadBase.solved_today,
+      daily_target: payloadBase.daily_target,
+      backlog: payloadBase.backlog,
+      streak: payloadBase.streak,
+      leetcode_username: payloadBase.leetcode_username,
+    };
     const payload = {
-      ...payloadBase,
+      ...(includeSolvedProblems ? payloadBase : payloadWithoutOptionalProblems),
       [dateColumn]: date,
     };
 
@@ -69,11 +84,27 @@ export async function saveDailyStats({
     }
   }
 
+  async function saveWithCompatibility(dateColumn: "stat_date" | "date") {
+    try {
+      await saveUsingDateColumn(dateColumn, true);
+    } catch (error) {
+      const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+      const mentionsMissingProblemsColumn =
+        message.includes("today_solved_problems") &&
+        (message.includes("column") || message.includes("schema cache"));
+      if (!mentionsMissingProblemsColumn) {
+        throw error;
+      }
+
+      await saveUsingDateColumn(dateColumn, false);
+    }
+  }
+
   try {
-    await saveUsingDateColumn("stat_date");
+    await saveWithCompatibility("stat_date");
   } catch (primaryError) {
     try {
-      await saveUsingDateColumn("date");
+      await saveWithCompatibility("date");
     } catch (fallbackError) {
       const primaryMessage =
         primaryError instanceof Error ? primaryError.message : String(primaryError);

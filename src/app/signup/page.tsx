@@ -43,7 +43,11 @@ export default function SignupPage() {
       email: form.email,
       password: form.password,
       options: {
-        data: { name: form.name, leetcode_username: form.leetcodeUsername, daily_target: target },
+        data: {
+          name: form.name,
+          leetcode_username: form.leetcodeUsername,
+          daily_target: target,
+        },
       },
     });
 
@@ -85,7 +89,7 @@ export default function SignupPage() {
     extra?: Record<string, unknown>,
   ) => (
     <div>
-      <label htmlFor={id} className="mb-1.5 block text-sm font-semibold text-gray-700">
+      <label htmlFor={id} className="mb-1.5 block text-sm font-semibold text-slate-700">
         {label}
       </label>
       <input
@@ -94,7 +98,7 @@ export default function SignupPage() {
         required
         value={form[id]}
         onChange={(e) => setForm({ ...form, [id]: e.target.value })}
-        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-100"
+        className="field-input w-full rounded-2xl px-4 py-3 text-sm"
         placeholder={placeholder}
         {...extra}
       />
@@ -102,76 +106,108 @@ export default function SignupPage() {
   );
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
-      <div className="w-full max-w-md">
+    <div className="saas-shell flex min-h-screen items-center justify-center px-4 py-8 sm:px-6">
+      <div className="grid w-full max-w-6xl gap-6 lg:grid-cols-[1fr_0.95fr] lg:items-center">
+        <section className="surface-panel hidden rounded-[2rem] p-8 lg:block">
+          <span className="eyebrow">Build The Habit</span>
+          <h1 className="mt-5 max-w-xl text-4xl font-semibold tracking-tight text-slate-950">
+            Create a practice system you can actually keep.
+          </h1>
+          <p className="mt-4 max-w-xl text-base leading-8 text-slate-600">
+            Set your daily target once, connect your LeetCode username, and let the
+            dashboard keep score on backlog, streaks, and momentum.
+          </p>
 
-        {/* Brand mark */}
-        <div className="mb-8 text-center">
-          <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-xl text-white shadow-md shadow-blue-200">
-            ⚡
-          </span>
-          <h1 className="mt-4 text-2xl font-bold tracking-tight text-gray-900">Create your account</h1>
-          <p className="mt-1 text-sm text-gray-500">Start tracking your LeetCode progress every day.</p>
-        </div>
-
-        <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            {field("name", "Full Name", "text", "Jane Doe")}
-            {field("email", "Email", "email", "you@example.com")}
-            {field("password", "Password", "password", "At least 6 characters", { minLength: 6 })}
-            {field("leetcodeUsername", "LeetCode Username", "text", "leetcode_handle")}
-
-            <div>
-              <label htmlFor="dailyTarget" className="mb-1.5 block text-sm font-semibold text-gray-700">
-                Daily Target
-              </label>
-              <div className="relative">
-                <input
-                  id="dailyTarget"
-                  type="number"
-                  required
-                  min={1}
-                  value={form.dailyTarget}
-                  onChange={(e) => setForm({ ...form, dailyTarget: e.target.value })}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-100"
-                  placeholder="3"
-                />
-                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-400">
-                  problems/day
-                </span>
-              </div>
+          <div className="mt-10 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-3xl bg-white/75 p-5">
+              <p className="text-sm font-semibold text-slate-900">Personal pace</p>
+              <p className="mt-2 text-sm leading-7 text-slate-600">
+                Start with a sustainable daily target and adjust later without losing context.
+              </p>
             </div>
+            <div className="rounded-3xl bg-slate-950 p-5 text-white">
+              <p className="text-sm font-semibold text-white">Clear signals</p>
+              <p className="mt-2 text-sm leading-7 text-slate-300">
+                Know whether you are ahead, on track, or carrying work into tomorrow.
+              </p>
+            </div>
+          </div>
+        </section>
 
-            {errorMessage && (
-              <div className="flex items-start gap-2 rounded-xl border border-red-100 bg-red-50 px-3 py-2.5">
-                <span className="text-sm text-red-500">⚠</span>
-                <p className="text-sm text-red-600">{errorMessage}</p>
+        <section className="glass-card rounded-[2rem] p-6 sm:p-8">
+          <div className="mb-8 text-center lg:text-left">
+            <span className="inline-flex h-14 w-14 items-center justify-center rounded-3xl bg-slate-950 text-xl font-semibold text-white shadow-lg shadow-slate-900/15">
+              LT
+            </span>
+            <h1 className="mt-5 text-3xl font-semibold tracking-tight text-slate-950">
+              Create your account
+            </h1>
+            <p className="mt-2 text-sm leading-7 text-slate-600">
+              Start tracking your LeetCode progress every day.
+            </p>
+          </div>
+
+          <div className="surface-panel rounded-[1.5rem] p-5 sm:p-6">
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              {field("name", "Full Name", "text", "Jane Doe")}
+              {field("email", "Email", "email", "you@example.com")}
+              {field("password", "Password", "password", "At least 6 characters", {
+                minLength: 6,
+              })}
+              {field("leetcodeUsername", "LeetCode Username", "text", "leetcode_handle")}
+
+              <div>
+                <label htmlFor="dailyTarget" className="mb-1.5 block text-sm font-semibold text-slate-700">
+                  Daily Target
+                </label>
+                <div className="relative">
+                  <input
+                    id="dailyTarget"
+                    type="number"
+                    required
+                    min={1}
+                    value={form.dailyTarget}
+                    onChange={(e) => setForm({ ...form, dailyTarget: e.target.value })}
+                    className="field-input w-full rounded-2xl px-4 py-3 pr-30 text-sm"
+                    placeholder="3"
+                  />
+                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-400">
+                    problems/day
+                  </span>
+                </div>
               </div>
-            )}
 
-            {successMessage && (
-              <div className="flex items-start gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2.5">
-                <span className="text-sm text-emerald-500">✓</span>
-                <p className="text-sm text-emerald-700">{successMessage}</p>
-              </div>
-            )}
+              {errorMessage && (
+                <div className="flex items-start gap-2 rounded-2xl border border-red-100 bg-red-50 px-3 py-3">
+                  <span className="text-sm text-red-500">!</span>
+                  <p className="text-sm text-red-600">{errorMessage}</p>
+                </div>
+              )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? "Creating account…" : "Sign up"}
-            </button>
-          </form>
-        </div>
+              {successMessage && (
+                <div className="flex items-start gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-3">
+                  <span className="text-sm font-semibold text-emerald-500">OK</span>
+                  <p className="text-sm text-emerald-700">{successMessage}</p>
+                </div>
+              )}
 
-        <p className="mt-6 text-center text-sm text-gray-500">
-          Already have an account?{" "}
-          <Link href="/login" className="font-semibold text-blue-600 transition hover:text-blue-500">
-            Log in
-          </Link>
-        </p>
+              <button
+                type="submit"
+                disabled={loading}
+                className="gradient-button w-full rounded-2xl px-4 py-3 text-sm font-semibold text-white transition hover:opacity-95 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? "Creating account..." : "Sign up"}
+              </button>
+            </form>
+          </div>
+
+          <p className="mt-6 text-center text-sm text-slate-500">
+            Already have an account?{" "}
+            <Link href="/login" className="font-semibold text-sky-700 transition hover:text-sky-600">
+              Log in
+            </Link>
+          </p>
+        </section>
       </div>
     </div>
   );

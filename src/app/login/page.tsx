@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { syncUserStats } from "@/lib/stats-sync";
 import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
@@ -34,7 +35,10 @@ export default function LoginPage() {
         {
           id: user.id,
           name: typeof metadata.name === "string" ? metadata.name : null,
-          leetcode_username: typeof metadata.leetcode_username === "string" ? metadata.leetcode_username : null,
+          leetcode_username:
+            typeof metadata.leetcode_username === "string"
+              ? metadata.leetcode_username
+              : null,
         },
         { onConflict: "id" },
       );
@@ -43,90 +47,137 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
+
+      try {
+        await syncUserStats(user);
+      } catch (syncError) {
+        setErrorMessage(
+          syncError instanceof Error
+            ? `Logged in, but stats sync failed: ${syncError.message}`
+            : "Logged in, but stats sync failed.",
+        );
+        setLoading(false);
+        return;
+      }
     }
 
-    setSuccessMessage("Logged in successfully. Redirecting…");
+    setSuccessMessage("Logged in successfully. Redirecting...");
     router.push("/dashboard");
     setLoading(false);
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
-      <div className="w-full max-w-md">
+    <div className="saas-shell flex min-h-screen items-center justify-center px-4 py-8 sm:px-6">
+      <div className="grid w-full max-w-5xl gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+        <section className="surface-panel hidden rounded-[2rem] p-8 lg:flex lg:flex-col lg:justify-between">
+          <div>
+            <span className="eyebrow">Welcome Back</span>
+            <h1 className="mt-5 text-4xl font-semibold tracking-tight text-slate-950">
+              Pick up the streak where you left it.
+            </h1>
+            <p className="mt-4 text-base leading-8 text-slate-600">
+              Review today&apos;s accepted problems, keep an eye on your backlog, and stay
+              aligned with your goals without digging through clutter.
+            </p>
+          </div>
 
-        {/* Brand mark */}
-        <div className="mb-8 text-center">
-          <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-xl text-white shadow-md shadow-blue-200">
-            ⚡
-          </span>
-          <h1 className="mt-4 text-2xl font-bold tracking-tight text-gray-900">Welcome back</h1>
-          <p className="mt-1 text-sm text-gray-500">Log in to continue tracking your progress.</p>
-        </div>
-
-        <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-semibold text-gray-700">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-100"
-                placeholder="you@example.com"
-              />
+          <div className="mt-10 grid gap-4">
+            <div className="rounded-3xl bg-slate-950 p-5 text-white">
+              <p className="text-sm text-slate-300">Accountability snapshot</p>
+              <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+                <div className="rounded-2xl bg-white/8 p-3">
+                  <p className="text-2xl font-semibold">5</p>
+                  <p className="mt-1 text-xs text-slate-400">target</p>
+                </div>
+                <div className="rounded-2xl bg-white/8 p-3">
+                  <p className="text-2xl font-semibold">12</p>
+                  <p className="mt-1 text-xs text-slate-400">streak</p>
+                </div>
+                <div className="rounded-2xl bg-white/8 p-3">
+                  <p className="text-2xl font-semibold">2</p>
+                  <p className="mt-1 text-xs text-slate-400">backlog</p>
+                </div>
+              </div>
             </div>
+          </div>
+        </section>
 
-            <div>
-              <div className="mb-1.5 flex items-center justify-between">
-                <label htmlFor="password" className="block text-sm font-semibold text-gray-700">
-                  Password
+        <section className="glass-card rounded-[2rem] p-6 sm:p-8">
+          <div className="mb-8 text-center lg:text-left">
+            <span className="inline-flex h-14 w-14 items-center justify-center rounded-3xl bg-slate-950 text-xl font-semibold text-white shadow-lg shadow-slate-900/15">
+              LT
+            </span>
+            <h1 className="mt-5 text-3xl font-semibold tracking-tight text-slate-950">Sign in</h1>
+            <p className="mt-2 text-sm leading-7 text-slate-600">
+              Log in to continue tracking your progress.
+            </p>
+          </div>
+
+          <div className="surface-panel rounded-[1.5rem] p-5 sm:p-6">
+            <form className="space-y-5" onSubmit={handleSubmit}>
+              <div>
+                <label htmlFor="email" className="mb-1.5 block text-sm font-semibold text-slate-700">
+                  Email
                 </label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="field-input w-full rounded-2xl px-4 py-3 text-sm"
+                  placeholder="you@example.com"
+                />
               </div>
-              <input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-100"
-                placeholder="Enter your password"
-              />
-            </div>
 
-            {errorMessage && (
-              <div className="flex items-start gap-2 rounded-xl border border-red-100 bg-red-50 px-3 py-2.5">
-                <span className="text-sm text-red-500">⚠</span>
-                <p className="text-sm text-red-600">{errorMessage}</p>
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label htmlFor="password" className="block text-sm font-semibold text-slate-700">
+                    Password
+                  </label>
+                </div>
+                <input
+                  id="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="field-input w-full rounded-2xl px-4 py-3 text-sm"
+                  placeholder="Enter your password"
+                />
               </div>
-            )}
 
-            {successMessage && (
-              <div className="flex items-start gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2.5">
-                <span className="text-sm text-emerald-500">✓</span>
-                <p className="text-sm text-emerald-700">{successMessage}</p>
-              </div>
-            )}
+              {errorMessage && (
+                <div className="flex items-start gap-2 rounded-2xl border border-red-100 bg-red-50 px-3 py-3">
+                  <span className="text-sm text-red-500">!</span>
+                  <p className="text-sm text-red-600">{errorMessage}</p>
+                </div>
+              )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? "Logging in…" : "Log in"}
-            </button>
-          </form>
-        </div>
+              {successMessage && (
+                <div className="flex items-start gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-3">
+                  <span className="text-sm font-semibold text-emerald-500">OK</span>
+                  <p className="text-sm text-emerald-700">{successMessage}</p>
+                </div>
+              )}
 
-        <p className="mt-6 text-center text-sm text-gray-500">
-          New here?{" "}
-          <Link href="/signup" className="font-semibold text-blue-600 transition hover:text-blue-500">
-            Create an account
-          </Link>
-        </p>
+              <button
+                type="submit"
+                disabled={loading}
+                className="gradient-button w-full rounded-2xl px-4 py-3 text-sm font-semibold text-white transition hover:opacity-95 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? "Logging in..." : "Log in"}
+              </button>
+            </form>
+          </div>
+
+          <p className="mt-6 text-center text-sm text-slate-500">
+            New here?{" "}
+            <Link href="/signup" className="font-semibold text-sky-700 transition hover:text-sky-600">
+              Create an account
+            </Link>
+          </p>
+        </section>
       </div>
     </div>
   );
