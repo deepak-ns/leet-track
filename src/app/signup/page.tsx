@@ -74,14 +74,18 @@ export default function SignupPage() {
           profileError.message.toLowerCase().includes("row-level security") ||
           profileError.message.toLowerCase().includes("permission denied");
         if (!blocked) {
-          setErrorMessage(`Account created, but profile setup failed: ${profileError.message}`);
+          setErrorMessage(
+            `Account created, but profile setup failed: ${profileError.message}`,
+          );
           setLoading(false);
           return;
         }
       }
     }
 
-    setSuccessMessage("Account created! Check your email to verify, then log in.");
+    setSuccessMessage(
+      "Account created! Check your email to verify, then log in.",
+    );
     setForm(initialState);
     setLoading(false);
   }
@@ -94,7 +98,10 @@ export default function SignupPage() {
     extra?: Record<string, unknown>,
   ) => (
     <div>
-      <label htmlFor={id} className="mb-1.5 block text-sm font-semibold text-slate-700">
+      <label
+        htmlFor={id}
+        className="mb-1.5 block text-sm font-semibold text-slate-700"
+      >
         {label}
       </label>
       <input
@@ -119,21 +126,26 @@ export default function SignupPage() {
             Create a practice system you can actually keep.
           </h1>
           <p className="mt-4 max-w-xl text-base leading-8 text-slate-600">
-            Set your daily target once, connect your LeetCode username, and let the
-            dashboard keep score on solved problems, daily targets, and active days.
+            Set your daily target once, connect your LeetCode username, and let
+            the dashboard keep score on solved problems, daily targets, and
+            active days.
           </p>
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2">
             <div className="rounded-3xl bg-white/75 p-5">
-              <p className="text-sm font-semibold text-slate-900">Personal pace</p>
+              <p className="text-sm font-semibold text-slate-900">
+                Personal pace
+              </p>
               <p className="mt-2 text-sm leading-7 text-slate-600">
-                Start with a sustainable daily target and adjust later without losing context.
+                Start with a sustainable daily target and adjust later without
+                losing context.
               </p>
             </div>
             <div className="rounded-3xl bg-slate-950 p-5 text-white">
               <p className="text-sm font-semibold text-white">Clear signals</p>
               <p className="mt-2 text-sm leading-7 text-slate-300">
-                Know whether you are ahead, on track, or carrying work into tomorrow.
+                Know whether you are ahead, on track, or carrying work into
+                tomorrow.
               </p>
             </div>
           </div>
@@ -156,13 +168,27 @@ export default function SignupPage() {
             <form className="space-y-4" onSubmit={handleSubmit}>
               {field("name", "Full Name", "text", "Jane Doe")}
               {field("email", "Email", "email", "you@example.com")}
-              {field("password", "Password", "password", "At least 6 characters", {
-                minLength: 6,
-              })}
-              {field("leetcodeUsername", "LeetCode Username", "text", "leetcode_handle")}
+              {field(
+                "password",
+                "Password",
+                "password",
+                "At least 6 characters",
+                {
+                  minLength: 6,
+                },
+              )}
+              {field(
+                "leetcodeUsername",
+                "LeetCode Username",
+                "text",
+                "leetcode_handle",
+              )}
 
               <div>
-                <label htmlFor="dailyTarget" className="mb-1.5 block text-sm font-semibold text-slate-700">
+                <label
+                  htmlFor="dailyTarget"
+                  className="mb-1.5 block text-sm font-semibold text-slate-700"
+                >
                   Daily Target
                 </label>
                 <div className="relative">
@@ -172,7 +198,9 @@ export default function SignupPage() {
                     required
                     min={1}
                     value={form.dailyTarget}
-                    onChange={(e) => setForm({ ...form, dailyTarget: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, dailyTarget: e.target.value })
+                    }
                     className="field-input w-full rounded-2xl px-4 py-3 pr-30 text-sm"
                     placeholder="3"
                   />
@@ -191,7 +219,9 @@ export default function SignupPage() {
 
               {successMessage && (
                 <div className="flex items-start gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-3">
-                  <span className="text-sm font-semibold text-emerald-500">OK</span>
+                  <span className="text-sm font-semibold text-emerald-500">
+                    OK
+                  </span>
                   <p className="text-sm text-emerald-700">{successMessage}</p>
                 </div>
               )}
@@ -208,7 +238,10 @@ export default function SignupPage() {
 
           <p className="mt-6 text-center text-sm text-slate-500">
             Already have an account?{" "}
-            <Link href="/login" className="font-semibold text-sky-700 transition hover:text-sky-600">
+            <Link
+              href="/login"
+              className="font-semibold text-sky-700 transition hover:text-sky-600"
+            >
               Log in
             </Link>
           </p>

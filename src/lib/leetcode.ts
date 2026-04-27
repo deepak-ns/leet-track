@@ -44,8 +44,12 @@ export async function getCalendar<T = unknown>(username: string): Promise<T> {
   return fetchFromLeetcode<T>(`/${encodeURIComponent(username)}/calendar`);
 }
 
-export async function getQuestionBySlug<T = unknown>(titleSlug: string): Promise<T> {
-  return fetchFromLeetcode<T>(`/select?titleSlug=${encodeURIComponent(titleSlug)}`);
+export async function getQuestionBySlug<T = unknown>(
+  titleSlug: string,
+): Promise<T> {
+  return fetchFromLeetcode<T>(
+    `/select?titleSlug=${encodeURIComponent(titleSlug)}`,
+  );
 }
 
 export type SubmissionRecord = {
@@ -90,7 +94,9 @@ function getTimestampMs(submission: SubmissionRecord): number | null {
   }
 
   if (typeof rawTimestamp === "number" && Number.isFinite(rawTimestamp)) {
-    return rawTimestamp < 1_000_000_000_000 ? rawTimestamp * 1000 : rawTimestamp;
+    return rawTimestamp < 1_000_000_000_000
+      ? rawTimestamp * 1000
+      : rawTimestamp;
   }
 
   if (typeof rawTimestamp === "string") {
@@ -155,7 +161,10 @@ export function getSolvedTodayCount(submissions: SubmissionRecord[]): {
       return false;
     }
 
-    const submissionDate = formatDateInTimeZone(new Date(timestampMs), FIXED_TIME_ZONE);
+    const submissionDate = formatDateInTimeZone(
+      new Date(timestampMs),
+      FIXED_TIME_ZONE,
+    );
     return submissionDate === todayDate;
   }).length;
 
@@ -169,7 +178,9 @@ export type SolvedTodayProblem = {
   difficulty: "Easy" | "Medium" | "Hard" | null;
 };
 
-function normalizeDifficulty(value: unknown): "Easy" | "Medium" | "Hard" | null {
+function normalizeDifficulty(
+  value: unknown,
+): "Easy" | "Medium" | "Hard" | null {
   if (typeof value === "number") {
     if (value === 1) return "Easy";
     if (value === 2) return "Medium";
@@ -237,10 +248,7 @@ export async function hydrateProblemDifficulties(
 }
 
 function getSubmissionSlug(submission: SubmissionRecord): string | null {
-  const candidates = [
-    submission.titleSlug,
-    submission.questionSlug,
-  ];
+  const candidates = [submission.titleSlug, submission.questionSlug];
 
   for (const candidate of candidates) {
     if (typeof candidate === "string") {
@@ -277,7 +285,10 @@ export function getSolvedTodayProblems(
     if (timestampMs === null) {
       continue;
     }
-    const submissionDate = formatDateInTimeZone(new Date(timestampMs), FIXED_TIME_ZONE);
+    const submissionDate = formatDateInTimeZone(
+      new Date(timestampMs),
+      FIXED_TIME_ZONE,
+    );
     if (submissionDate !== todayDate) continue;
 
     const title = getSubmissionTitle(submission);
@@ -315,7 +326,10 @@ export function getSolvedTodayProblemEntries(
 
     const timestampMs = getTimestampMs(submission);
     if (timestampMs === null) continue;
-    const submissionDate = formatDateInTimeZone(new Date(timestampMs), FIXED_TIME_ZONE);
+    const submissionDate = formatDateInTimeZone(
+      new Date(timestampMs),
+      FIXED_TIME_ZONE,
+    );
     if (submissionDate !== todayDate) continue;
 
     const title = getSubmissionTitle(submission);

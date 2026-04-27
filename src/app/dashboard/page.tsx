@@ -101,13 +101,19 @@ function getProblemLinks(
   titlesValue: unknown,
   slugsValue: unknown,
   difficultiesValue: unknown,
-): { title: string; slug: string | null; difficulty: "Easy" | "Medium" | "Hard" | null }[] {
+): {
+  title: string;
+  slug: string | null;
+  difficulty: "Easy" | "Medium" | "Hard" | null;
+}[] {
   const titles = getProblemTitles(titlesValue);
   const slugs = Array.isArray(slugsValue)
     ? slugsValue.map((v) => (typeof v === "string" ? v.trim() : ""))
     : [];
   const difficulties = Array.isArray(difficultiesValue)
-    ? difficultiesValue.map((v) => (typeof v === "string" ? v.trim().toLowerCase() : ""))
+    ? difficultiesValue.map((v) =>
+        typeof v === "string" ? v.trim().toLowerCase() : "",
+      )
     : [];
 
   return titles.map((title, index) => {
@@ -139,7 +145,9 @@ function DifficultyBadge({
         ? "bg-amber-100 text-amber-700"
         : "bg-rose-100 text-rose-700";
   return (
-    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${className}`}>
+    <span
+      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${className}`}
+    >
       {difficulty}
     </span>
   );
@@ -258,10 +266,11 @@ export default function DashboardPage() {
       }
 
       // On refresh/login, also refresh friends' stats in DB so you see updates even if they don't log in.
-      const { data: friendProfiles, error: friendProfilesError } = await supabase
-        .from("profiles")
-        .select("id, name, leetcode_username, daily_target")
-        .in("id", friendIds);
+      const { data: friendProfiles, error: friendProfilesError } =
+        await supabase
+          .from("profiles")
+          .select("id, name, leetcode_username, daily_target")
+          .in("id", friendIds);
       if (friendProfilesError) throw friendProfilesError;
 
       const profilesById = new Map<string, FriendProfileRow>();
@@ -270,11 +279,12 @@ export default function DashboardPage() {
         profilesById.set(profile.id, profile);
       });
 
-      const { data: friendDailyStatsRows, error: friendDailyStatsError } = await supabase
-        .from("daily_stats")
-        .select("user_id, leetcode_username, daily_target, stat_date")
-        .in("user_id", friendIds)
-        .order("stat_date", { ascending: false });
+      const { data: friendDailyStatsRows, error: friendDailyStatsError } =
+        await supabase
+          .from("daily_stats")
+          .select("user_id, leetcode_username, daily_target, stat_date")
+          .in("user_id", friendIds)
+          .order("stat_date", { ascending: false });
       if (friendDailyStatsError) throw friendDailyStatsError;
 
       const dailyStatsById = new Map<string, FriendDailyStatsUsernameRow>();
@@ -295,7 +305,8 @@ export default function DashboardPage() {
           const profile = profilesById.get(friendId);
           const fallbackStat = dailyStatsById.get(friendId);
           const usernameFromProfile =
-            typeof profile?.leetcode_username === "string" && profile.leetcode_username.trim()
+            typeof profile?.leetcode_username === "string" &&
+            profile.leetcode_username.trim()
               ? profile.leetcode_username.trim()
               : null;
           const usernameFromDailyStats =
@@ -307,7 +318,9 @@ export default function DashboardPage() {
           if (!username) continue;
           const target = Math.max(
             1,
-            Math.trunc(profile?.daily_target ?? fallbackStat?.daily_target ?? 1),
+            Math.trunc(
+              profile?.daily_target ?? fallbackStat?.daily_target ?? 1,
+            ),
           );
           try {
             await syncLeetcodeStatsForUserId({
@@ -353,7 +366,8 @@ export default function DashboardPage() {
             stat?.today_problem_difficulties,
           ),
           activeFraction:
-            typeof stat?.active_fraction === "string" && stat.active_fraction.trim()
+            typeof stat?.active_fraction === "string" &&
+            stat.active_fraction.trim()
               ? stat.active_fraction.trim()
               : "0/1",
         };
@@ -404,7 +418,8 @@ export default function DashboardPage() {
             toNumber(row?.problems_solved_since_signup) ?? 0,
           dailyTarget: Math.max(1, toNumber(row?.daily_target) ?? 1),
           activeFraction:
-            typeof row?.active_fraction === "string" && row.active_fraction.trim()
+            typeof row?.active_fraction === "string" &&
+            row.active_fraction.trim()
               ? row.active_fraction.trim()
               : "0/1",
           todaySolvedProblems: getProblemLinks(
@@ -590,13 +605,13 @@ export default function DashboardPage() {
         <section className="glass-card rounded-[2rem] p-5 sm:p-6 lg:p-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
-              <span className="eyebrow">Dashboard</span>
+              <span className="eyebrow">TrackLeet</span>
               <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
                 Track momentum, not just totals.
               </h1>
               <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
-                Monitor today&apos;s pace, stay on target, and keep your progress
-                visible in one responsive workspace.
+                Monitor today&apos;s pace, stay on target, and keep your
+                progress visible in one responsive workspace.
               </p>
             </div>
 
@@ -610,12 +625,10 @@ export default function DashboardPage() {
                 </p>
               </div>
               <div className="rounded-[1.5rem] bg-slate-950 p-4 text-white">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Profile
-                </p>
-                <p className="mt-2 text-sm font-semibold text-slate-200">
+                <p className="text font-bold uppercase tracking-[0.18em] text-slate-050">
                   {stats.userName ?? "User"}
                 </p>
+
                 <p className="mt-2 text-lg font-semibold">
                   {stats.leetcodeUsername
                     ? `@${stats.leetcodeUsername}`
@@ -644,74 +657,12 @@ export default function DashboardPage() {
             />
           ))}
         </section>
-
-        <section className="surface-panel rounded-[2.3rem] p-6 sm:p-8">
-          <div className="surface-panel rounded-[2rem] p-5 sm:p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Solved Today
-                </p>
-                <h2 className="mt-2 text-xl font-semibold text-slate-950">
-                  Accepted problems
-                </h2>
-              </div>
-              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                {stats.todaySolved} done
-              </span>
-            </div>
-
-            {loading ? (
-              <div className="mt-6 flex items-center gap-3 text-sm text-slate-500">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500" />
-                Loading...
-              </div>
-            ) : !stats.todaySolvedProblems.length ? (
-              <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 bg-white/70 px-4 py-6 text-sm leading-7 text-slate-500">
-                No accepted problems solved today.
-              </div>
-            ) : (
-              <ul className="mt-6 grid gap-2.5 sm:grid-cols-2 sm:gap-3">
-                {stats.todaySolvedProblems.map((problem) => (
-                  <li
-                    key={`${problem.slug ?? "noslug"}-${problem.title}`}
-                    className="rounded-[1.1rem] border border-slate-200/80 bg-white px-3.5 py-3 text-sm font-medium text-slate-700 shadow-sm sm:rounded-[1.25rem] sm:px-4"
-                  >
-                    <span className="flex items-start gap-3">
-                      <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
-                      <span className="flex min-w-0 flex-wrap items-center gap-2">
-                      {problem.slug ? (
-                        <a
-                          href={`https://leetcode.com/problems/${problem.slug}/`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block min-w-0 rounded-md px-0.5 py-0.5 text-sky-700 underline decoration-sky-300 underline-offset-2 transition hover:text-sky-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
-                          title={problem.title}
-                        >
-                          {problem.title}
-                        </a>
-                      ) : (
-                        <span>{problem.title}</span>
-                      )}
-                      <DifficultyBadge difficulty={problem.difficulty} />
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </section>
-
         <section className="surface-panel rounded-[2rem] p-5 sm:p-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+              <p className="text-xl font-bold uppercase tracking-[0.18em] text-slate-1000">
                 Friends
               </p>
-              <h2 className="mt-2 text-2xl font-semibold text-slate-950 sm:text-3xl">
-                Leaderboard
-              </h2>
             </div>
           </div>
 
@@ -768,7 +719,7 @@ export default function DashboardPage() {
                               {friend.todayProblems.map((problem) => (
                                 <a
                                   key={`${friend.id}-${problem.slug ?? "noslug"}-${problem.title}`}
-                                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-1000 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
                                   title={problem.title}
                                   href={
                                     problem.slug
@@ -779,7 +730,9 @@ export default function DashboardPage() {
                                   rel="noreferrer"
                                 >
                                   {problem.title}
-                                  <DifficultyBadge difficulty={problem.difficulty} />
+                                  <DifficultyBadge
+                                    difficulty={problem.difficulty}
+                                  />
                                 </a>
                               ))}
                             </div>
@@ -834,7 +787,7 @@ export default function DashboardPage() {
                       </div>
                       <div className="rounded-2xl bg-slate-50 p-3">
                         <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                          Since signup
+                          Total Solved Since signup
                         </p>
                         <p className="mt-2 text-xl font-semibold text-rose-700">
                           {friend.problemsSolvedSinceSignup}
@@ -861,7 +814,9 @@ export default function DashboardPage() {
                               rel="noreferrer"
                             >
                               {problem.title}
-                              <DifficultyBadge difficulty={problem.difficulty} />
+                              <DifficultyBadge
+                                difficulty={problem.difficulty}
+                              />
                             </a>
                           ))}
                         </div>
@@ -876,6 +831,64 @@ export default function DashboardPage() {
               </div>
             </>
           )}
+        </section>
+
+        <section className="surface-panel rounded-[2.3rem] p-6 sm:p-8">
+          <div className="surface-panel rounded-[2rem] p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Solved Today
+                </p>
+                <h2 className="mt-2 text-xl font-semibold text-slate-950">
+                  Accepted problems
+                </h2>
+              </div>
+              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                {stats.todaySolved} done
+              </span>
+            </div>
+
+            {loading ? (
+              <div className="mt-6 flex items-center gap-3 text-sm text-slate-500">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500" />
+                Loading...
+              </div>
+            ) : !stats.todaySolvedProblems.length ? (
+              <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 bg-white/70 px-4 py-6 text-sm leading-7 text-slate-500">
+                No accepted problems solved today.
+              </div>
+            ) : (
+              <ul className="mt-6 grid gap-2.5 sm:grid-cols-2 sm:gap-3">
+                {stats.todaySolvedProblems.map((problem) => (
+                  <li
+                    key={`${problem.slug ?? "noslug"}-${problem.title}`}
+                    className="rounded-[1.1rem] border border-slate-200/80 bg-white px-3.5 py-3 text-sm font-medium text-slate-700 shadow-sm sm:rounded-[1.25rem] sm:px-4"
+                  >
+                    <span className="flex items-start gap-3">
+                      <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+                      <span className="flex min-w-0 flex-wrap items-center gap-2">
+                        {problem.slug ? (
+                          <a
+                            href={`https://leetcode.com/problems/${problem.slug}/`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block min-w-0 rounded-md px-0.5 py-0.5 text-sky-700 underline decoration-sky-300 underline-offset-2 transition hover:text-sky-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                            title={problem.title}
+                          >
+                            {problem.title}
+                          </a>
+                        ) : (
+                          <span>{problem.title}</span>
+                        )}
+                        <DifficultyBadge difficulty={problem.difficulty} />
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </section>
 
         <section className="surface-panel rounded-[2rem] p-5 sm:p-6">
