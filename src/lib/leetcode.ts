@@ -379,3 +379,29 @@ export function extractSubmissionRecords(payload: unknown): SubmissionRecord[] {
 
   return [];
 }
+
+export async function checkLeetCodeUserExists(
+  username: string,
+): Promise<boolean> {
+  try {
+    const response = await fetch(
+      `${LEETCODE_API_BASE_URL}/${encodeURIComponent(username)}`,
+    );
+    if (!response.ok) return false;
+
+    const data = await response.json();
+
+    // alfa-leetcode-api returns errors array when user doesn't exist
+    if (data.errors && data.errors.length > 0) return false;
+    if (data.matchedUser === null) return false;
+
+    // Valid user has a username field
+    if (typeof data.username === "string" && data.username.trim() !== "") {
+      return true;
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}

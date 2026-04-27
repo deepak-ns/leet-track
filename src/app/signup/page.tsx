@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { checkLeetCodeUserExists } from "@/lib/leetcode";
 
 type SignupFormState = {
   name: string;
@@ -35,6 +36,16 @@ export default function SignupPage() {
     const target = Number.parseInt(form.dailyTarget, 10);
     if (!Number.isFinite(target) || target <= 0) {
       setErrorMessage("Daily target must be a positive number.");
+      setLoading(false);
+      return;
+    }
+
+    // Validate LeetCode username
+    const userExists = await checkLeetCodeUserExists(form.leetcodeUsername);
+    if (!userExists) {
+      setErrorMessage(
+        "LeetCode username does not exist. Please enter a valid username.",
+      );
       setLoading(false);
       return;
     }
