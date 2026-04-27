@@ -1,6 +1,24 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 export default function Home() {
+  const router = useRouter();
+
+  useEffect(() => {
+    async function checkSession() {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        router.replace("/dashboard");
+      }
+    }
+
+    checkSession();
+  }, [router]);
+
   return (
     <div className="saas-shell hero-grid flex flex-1 items-center px-4 py-8 sm:px-6 lg:px-8">
       <main className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
@@ -11,8 +29,9 @@ export default function Home() {
             Turn daily practice into visible momentum.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
-            Follow your progress, stay on target, and stay accountable with a workspace
-            that feels more like a product dashboard than a spreadsheet.
+            Follow your progress, stay on target, and stay accountable with a
+            workspace that feels more like a product dashboard than a
+            spreadsheet.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -33,15 +52,21 @@ export default function Home() {
           <div className="mt-10 grid gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border border-white/70 bg-white/70 p-4">
               <p className="text-2xl font-semibold text-slate-950">Daily</p>
-              <p className="mt-1 text-sm text-slate-600">See what you solved today and what still needs attention.</p>
+              <p className="mt-1 text-sm text-slate-600">
+                See what you solved today and what still needs attention.
+              </p>
             </div>
             <div className="rounded-2xl border border-white/70 bg-white/70 p-4">
               <p className="text-2xl font-semibold text-slate-950">Targets</p>
-              <p className="mt-1 text-sm text-slate-600">Set a daily target and track the gap at a glance.</p>
+              <p className="mt-1 text-sm text-slate-600">
+                Set a daily target and track the gap at a glance.
+              </p>
             </div>
             <div className="rounded-2xl border border-white/70 bg-white/70 p-4">
               <p className="text-2xl font-semibold text-slate-950">Friends</p>
-              <p className="mt-1 text-sm text-slate-600">Compare progress with people who keep you honest and motivated.</p>
+              <p className="mt-1 text-sm text-slate-600">
+                Compare progress with people who keep you honest and motivated.
+              </p>
             </div>
           </div>
         </section>
@@ -61,7 +86,9 @@ export default function Home() {
               <div className="rounded-2xl bg-white/8 p-4">
                 <p className="text-sm text-slate-300">Active days</p>
                 <p className="mt-2 text-4xl font-semibold text-white">12/30</p>
-                <p className="mt-2 text-sm text-sky-300">Built one day at a time</p>
+                <p className="mt-2 text-sm text-sky-300">
+                  Built one day at a time
+                </p>
               </div>
             </div>
             <div className="mt-5 rounded-2xl bg-gradient-to-r from-teal-500/20 via-sky-500/20 to-blue-500/20 p-4">

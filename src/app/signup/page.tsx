@@ -83,9 +83,7 @@ export default function SignupPage() {
       }
     }
 
-    setSuccessMessage(
-      "Account created! Check your email to verify, then log in.",
-    );
+    setSuccessMessage("Account created! You can now log in.");
     setForm(initialState);
     setLoading(false);
   }

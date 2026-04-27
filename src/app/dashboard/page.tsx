@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { syncLeetcodeStatsForUserId, syncUserStats } from "@/lib/stats-sync";
 import { supabase } from "@/lib/supabase";
 
@@ -239,9 +240,12 @@ export default function DashboardPage() {
   const [friendMessage, setFriendMessage] = useState<string | null>(null);
   const [friendError, setFriendError] = useState<string | null>(null);
   const [addingFriendId, setAddingFriendId] = useState<string | null>(null);
+  const [removingFriendId, setRemovingFriendId] = useState<string | null>(null);
   const [friendsStats, setFriendsStats] = useState<FriendStatsRow[]>([]);
   const [friendsStatsLoading, setFriendsStatsLoading] = useState(false);
   const [friendIds, setFriendIds] = useState<string[]>([]);
+
+  const router = useRouter();
 
   const loadFriendsStats = useCallback(async (userId: string, date: string) => {
     setFriendsStatsLoading(true);
@@ -392,7 +396,10 @@ export default function DashboardPage() {
           data: { user },
           error,
         } = await supabase.auth.getUser();
-        if (error || !user) throw new Error("Unable to load user details.");
+        if (error || !user) {
+          router.push("/login");
+          return;
+        }
         setCurrentUserId(user.id);
 
         const todayDate = new Date().toISOString().slice(0, 10);
@@ -599,6 +606,51 @@ export default function DashboardPage() {
     }
   }
 
+  async function handleRemoveFriend(friendUserId: string) {
+    if (!currentUserId) {
+      setFriendError("You must be logged in to remove friends.");
+      return;
+    }
+    setRemovingFriendId(friendUserId);
+    setFriendError(null);
+    setFriendMessage(null);
+    try {
+      const { error } = await supabase
+        .from("friends")
+        .delete()
+        .eq("user_id", currentUserId)
+        .eq("friend_user_id", friendUserId);
+      if (error) {
+        const { error: fallbackError } = await supabase
+          .from("friends")
+          .delete()
+          .eq("user_id", currentUserId)
+          .eq("friend_id", friendUserId);
+        if (fallbackError) throw fallbackError;
+      }
+      setFriendMessage("Friend removed successfully.");
+      await loadFriendsStats(
+        currentUserId,
+        new Date().toISOString().slice(0, 10),
+      );
+    } catch (error) {
+      setFriendError(
+        error instanceof Error ? error.message : "Failed to remove friend.",
+      );
+    } finally {
+      setRemovingFriendId(null);
+    }
+  }
+
+  async function handleLogout() {
+    try {
+      await supabase.auth.signOut();
+      router.push("/");
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  }
+
   return (
     <div className="saas-shell min-h-screen px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
@@ -625,15 +677,26 @@ export default function DashboardPage() {
                 </p>
               </div>
               <div className="rounded-[1.5rem] bg-slate-950 p-4 text-white">
-                <p className="text font-bold uppercase tracking-[0.18em] text-slate-050">
-                  {stats.userName ?? "User"}
-                </p>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text font-bold uppercase tracking-[0.18em] text-slate-050">
+                      {stats.userName ?? "User"}
+                    </p>
 
-                <p className="mt-2 text-lg font-semibold">
-                  {stats.leetcodeUsername
-                    ? `@${stats.leetcodeUsername}`
-                    : "Add your username"}
-                </p>
+                    <p className="mt-2 text-lg font-semibold">
+                      {stats.leetcodeUsername
+                        ? `@${stats.leetcodeUsername}`
+                        : "Add your username"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100"
+                  >
+                    Logout
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -690,6 +753,7 @@ export default function DashboardPage() {
                       <th className="px-4 py-3">Since signup</th>
                       <th className="px-4 py-3">Problems</th>
                       <th className="px-4 py-3">Active days</th>
+                      <th className="px-4 py-3">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -747,6 +811,18 @@ export default function DashboardPage() {
                             {friend.activeFraction}
                           </span>
                         </td>
+                        <td className="px-4 py-4">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFriend(friend.id)}
+                            disabled={removingFriendId === friend.id}
+                            className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {removingFriendId === friend.id
+                              ? "Removing..."
+                              : "Remove"}
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -765,15 +841,27 @@ export default function DashboardPage() {
                           {friend.name}
                         </h3>
                       </div>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          friend.todaySolved > 0
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-slate-100 text-slate-500"
-                        }`}
-                      >
-                        {friend.todaySolved} today
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            friend.todaySolved > 0
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-slate-100 text-slate-500"
+                          }`}
+                        >
+                          {friend.todaySolved} today
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFriend(friend.id)}
+                          disabled={removingFriendId === friend.id}
+                          className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {removingFriendId === friend.id
+                            ? "Removing..."
+                            : "Remove"}
+                        </button>
+                      </div>
                     </div>
 
                     <div className="mt-4 grid grid-cols-2 gap-3">
