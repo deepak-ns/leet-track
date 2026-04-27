@@ -31,6 +31,12 @@ export default function LoginPage() {
     const user = data.user;
     if (user) {
       const metadata = (user.user_metadata ?? {}) as Record<string, unknown>;
+      const dailyTarget =
+        typeof metadata.daily_target === "number" && Number.isFinite(metadata.daily_target)
+          ? Math.max(1, Math.trunc(metadata.daily_target))
+          : typeof metadata.daily_target === "string"
+            ? Math.max(1, Number.parseInt(metadata.daily_target, 10) || 1)
+            : 1;
       const { error: profileError } = await supabase.from("profiles").upsert(
         {
           id: user.id,
@@ -39,6 +45,7 @@ export default function LoginPage() {
             typeof metadata.leetcode_username === "string"
               ? metadata.leetcode_username
               : null,
+          daily_target: dailyTarget,
         },
         { onConflict: "id" },
       );
@@ -73,11 +80,11 @@ export default function LoginPage() {
           <div>
             <span className="eyebrow">Welcome Back</span>
             <h1 className="mt-5 text-4xl font-semibold tracking-tight text-slate-950">
-              Pick up the streak where you left it.
+              Pick up where you left off.
             </h1>
             <p className="mt-4 text-base leading-8 text-slate-600">
-              Review today&apos;s accepted problems, keep an eye on your backlog, and stay
-              aligned with your goals without digging through clutter.
+              Review today&apos;s accepted problems, track your daily target, and stay aligned
+              with your goals without digging through clutter.
             </p>
           </div>
 
@@ -91,11 +98,11 @@ export default function LoginPage() {
                 </div>
                 <div className="rounded-2xl bg-white/8 p-3">
                   <p className="text-2xl font-semibold">12</p>
-                  <p className="mt-1 text-xs text-slate-400">streak</p>
+                  <p className="mt-1 text-xs text-slate-400">active days</p>
                 </div>
                 <div className="rounded-2xl bg-white/8 p-3">
                   <p className="text-2xl font-semibold">2</p>
-                  <p className="mt-1 text-xs text-slate-400">backlog</p>
+                  <p className="mt-1 text-xs text-slate-400">solved today</p>
                 </div>
               </div>
             </div>

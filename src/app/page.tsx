@@ -11,8 +11,8 @@ export default function Home() {
             Turn daily practice into visible momentum.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
-            Follow your progress, keep backlog under control, and stay accountable with a
-            workspace that feels more like a product dashboard than a spreadsheet.
+            Follow your progress, stay on target, and stay accountable with a workspace
+            that feels more like a product dashboard than a spreadsheet.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -36,8 +36,8 @@ export default function Home() {
               <p className="mt-1 text-sm text-slate-600">See what you solved today and what still needs attention.</p>
             </div>
             <div className="rounded-2xl border border-white/70 bg-white/70 p-4">
-              <p className="text-2xl font-semibold text-slate-950">Backlog</p>
-              <p className="mt-1 text-sm text-slate-600">Carry missed targets forward without losing the bigger picture.</p>
+              <p className="text-2xl font-semibold text-slate-950">Targets</p>
+              <p className="mt-1 text-sm text-slate-600">Set a daily target and track the gap at a glance.</p>
             </div>
             <div className="rounded-2xl border border-white/70 bg-white/70 p-4">
               <p className="text-2xl font-semibold text-slate-950">Friends</p>
@@ -59,8 +59,8 @@ export default function Home() {
                 <p className="mt-2 text-sm text-emerald-300">Ahead of target</p>
               </div>
               <div className="rounded-2xl bg-white/8 p-4">
-                <p className="text-sm text-slate-300">Current streak</p>
-                <p className="mt-2 text-4xl font-semibold text-white">12</p>
+                <p className="text-sm text-slate-300">Active days</p>
+                <p className="mt-2 text-4xl font-semibold text-white">12/30</p>
                 <p className="mt-2 text-sm text-sky-300">Built one day at a time</p>
               </div>
             </div>
@@ -68,7 +68,7 @@ export default function Home() {
               <p className="text-sm text-slate-200">What the app keeps clear</p>
               <ul className="mt-3 space-y-2 text-sm text-slate-300">
                 <li>Accepted problems solved today</li>
-                <li>Target gap and carryover backlog</li>
+                <li>Daily targets and active days</li>
                 <li>Friend standings in one view</li>
               </ul>
             </div>

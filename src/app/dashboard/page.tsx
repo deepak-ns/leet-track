@@ -1,23 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  extractSubmissionRecords,
-  getAcceptedSubmissions,
-  getSolvedTodayCount,
-  getSolvedTodayProblems,
-  updateBacklogAndStreak,
-} from "@/lib/leetcode";
-import { syncUserStats } from "@/lib/stats-sync";
+import { syncLeetcodeStatsForUserId, syncUserStats } from "@/lib/stats-sync";
 import { supabase } from "@/lib/supabase";
 
 type DashboardStats = {
   totalSolved: number;
   todaySolved: number;
-  todaySolvedProblems: string[];
+  problemsSolvedSinceSignup: number;
   dailyTarget: number;
-  backlog: number;
-  streak: number;
+  activeFraction: string;
+  todaySolvedProblems: {
+    title: string;
+    slug: string | null;
+    difficulty: "Easy" | "Medium" | "Hard" | null;
+  }[];
+  userName: string | null;
   leetcodeUsername: string | null;
 };
 
@@ -27,33 +25,49 @@ type FriendSearchResult = {
   leetcode_username: string | null;
 };
 
+type FriendProfileRow = {
+  id: string;
+  name: string | null;
+  leetcode_username: string | null;
+  daily_target: number | null;
+};
+
+type FriendDailyStatsUsernameRow = {
+  user_id: string;
+  leetcode_username: string | null;
+  daily_target: number | null;
+  stat_date: string | null;
+};
+
 type FriendStatsRow = {
   id: string;
   name: string;
   todaySolved: number;
-  streak: number;
-  backlog: number;
-  todaySolvedProblems: string[];
+  problemsSolvedSinceSignup: number;
+  todayProblems: {
+    title: string;
+    slug: string | null;
+    difficulty: "Easy" | "Medium" | "Hard" | null;
+  }[];
+  activeFraction: string;
 };
 
-type DailyStatsRow = {
-  user_id?: string;
-  stat_date?: string;
-  date?: string;
-  created_at?: string;
-  total_solved?: number | string;
-  solved_today?: number | string;
-  today_solved?: number | string;
-  today_solved_problems?: string[] | null;
-  streak?: number | string;
-  backlog?: number | string;
-  daily_target?: number | string;
-  leetcode_username?: string | null;
+type UserDashboardStatsRow = {
+  user_id: string;
+  name: string | null;
+  total_solved: number | null;
+  daily_target: number | null;
+  solved_today: number | null;
+  today_problem_titles: string[] | null;
+  today_problem_slugs: string[] | null;
+  today_problem_difficulties: string[] | null;
+  problems_solved_since_signup: number | null;
+  active_fraction: string | null;
 };
 
 type MetricCardProps = {
   label: string;
-  value: number;
+  value: number | string;
   subtitle?: string;
   accent?: "blue" | "green" | "amber" | "rose" | "violet";
 };
@@ -75,52 +89,60 @@ function getProblemTitles(value: unknown): string[] {
   );
 }
 
-function getRowDate(stat: DailyStatsRow): string | undefined {
-  return (
-    stat.stat_date ??
-    stat.date ??
-    (typeof stat.created_at === "string"
-      ? stat.created_at.slice(0, 10)
-      : undefined)
-  );
+function toSlugFromTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 }
 
-async function getTodayDailyStatsRow(
-  userId: string,
-  todayDate: string,
-): Promise<DailyStatsRow | null> {
-  async function fetchUsingDateColumn(dateColumn: "stat_date" | "date") {
-    const { data, error } = await supabase
-      .from("daily_stats")
-      .select("*")
-      .eq("user_id", userId)
-      .eq(dateColumn, todayDate)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+function getProblemLinks(
+  titlesValue: unknown,
+  slugsValue: unknown,
+  difficultiesValue: unknown,
+): { title: string; slug: string | null; difficulty: "Easy" | "Medium" | "Hard" | null }[] {
+  const titles = getProblemTitles(titlesValue);
+  const slugs = Array.isArray(slugsValue)
+    ? slugsValue.map((v) => (typeof v === "string" ? v.trim() : ""))
+    : [];
+  const difficulties = Array.isArray(difficultiesValue)
+    ? difficultiesValue.map((v) => (typeof v === "string" ? v.trim().toLowerCase() : ""))
+    : [];
 
-    if (error) {
-      throw error;
-    }
+  return titles.map((title, index) => {
+    const rawSlug = slugs[index] ?? "";
+    const slug = rawSlug || toSlugFromTitle(title);
+    const difficultyRaw = difficulties[index] ?? "";
+    const difficulty =
+      difficultyRaw === "easy"
+        ? "Easy"
+        : difficultyRaw === "medium"
+          ? "Medium"
+          : difficultyRaw === "hard"
+            ? "Hard"
+            : null;
+    return { title, slug: slug || null, difficulty };
+  });
+}
 
-    return (data as DailyStatsRow | null) ?? null;
-  }
-
-  try {
-    return await fetchUsingDateColumn("stat_date");
-  } catch (primaryError) {
-    try {
-      return await fetchUsingDateColumn("date");
-    } catch (fallbackError) {
-      const primaryMessage =
-        primaryError instanceof Error ? primaryError.message : String(primaryError);
-      const fallbackMessage =
-        fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
-      throw new Error(
-        `Failed to load today's stats row. Primary: ${primaryMessage}. Fallback: ${fallbackMessage}`,
-      );
-    }
-  }
+function DifficultyBadge({
+  difficulty,
+}: {
+  difficulty: "Easy" | "Medium" | "Hard" | null;
+}) {
+  if (!difficulty) return null;
+  const className =
+    difficulty === "Easy"
+      ? "bg-emerald-100 text-emerald-700"
+      : difficulty === "Medium"
+        ? "bg-amber-100 text-amber-700"
+        : "bg-rose-100 text-rose-700";
+  return (
+    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${className}`}>
+      {difficulty}
+    </span>
+  );
 }
 
 const accentStyles = {
@@ -193,10 +215,11 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({
     totalSolved: 0,
     todaySolved: 0,
-    todaySolvedProblems: [],
+    problemsSolvedSinceSignup: 0,
     dailyTarget: 1,
-    backlog: 1,
-    streak: 0,
+    activeFraction: "0/1",
+    todaySolvedProblems: [],
+    userName: null,
     leetcodeUsername: null,
   });
   const [loading, setLoading] = useState(true);
@@ -234,113 +257,108 @@ export default function DashboardPage() {
         return;
       }
 
-      const [
-        { data: profiles, error: profilesError },
-        { data: dailyStats, error: statsError },
-      ] = await Promise.all([
-        supabase.from("profiles").select("id, name").in("id", friendIds),
-        supabase.from("daily_stats").select("*").in("user_id", friendIds),
-      ]);
-      if (profilesError) throw profilesError;
-      if (statsError) throw statsError;
+      // On refresh/login, also refresh friends' stats in DB so you see updates even if they don't log in.
+      const { data: friendProfiles, error: friendProfilesError } = await supabase
+        .from("profiles")
+        .select("id, name, leetcode_username, daily_target")
+        .in("id", friendIds);
+      if (friendProfilesError) throw friendProfilesError;
 
-      const statsByUserId = new Map<string, DailyStatsRow>();
-      const latestStatsByUserId = new Map<string, DailyStatsRow>();
-      const previousStatsByUserId = new Map<string, DailyStatsRow>();
-      const profileNamesByUserId = new Map<string, string>();
+      const profilesById = new Map<string, FriendProfileRow>();
+      (friendProfiles ?? []).forEach((row) => {
+        const profile = row as FriendProfileRow;
+        profilesById.set(profile.id, profile);
+      });
 
-      (dailyStats ?? []).forEach((row) => {
-        const stat = row as DailyStatsRow;
-        const rowDate = getRowDate(stat);
-        if (!stat.user_id || !rowDate) return;
+      const { data: friendDailyStatsRows, error: friendDailyStatsError } = await supabase
+        .from("daily_stats")
+        .select("user_id, leetcode_username, daily_target, stat_date")
+        .in("user_id", friendIds)
+        .order("stat_date", { ascending: false });
+      if (friendDailyStatsError) throw friendDailyStatsError;
 
-        const latest = latestStatsByUserId.get(stat.user_id);
-        const latestDate = latest ? getRowDate(latest) : undefined;
-        if (!latestDate || rowDate > latestDate) {
-          latestStatsByUserId.set(stat.user_id, stat);
-        }
-
-        if (stat.user_id && rowDate === date)
-          statsByUserId.set(stat.user_id, stat);
-        if (rowDate < date) {
-          const previous = previousStatsByUserId.get(stat.user_id);
-          const previousDate = previous ? getRowDate(previous) : undefined;
-          if (!previousDate || rowDate > previousDate) {
-            previousStatsByUserId.set(stat.user_id, stat);
-          }
+      const dailyStatsById = new Map<string, FriendDailyStatsUsernameRow>();
+      (friendDailyStatsRows ?? []).forEach((row) => {
+        const stat = row as FriendDailyStatsUsernameRow;
+        if (!dailyStatsById.has(stat.user_id)) {
+          dailyStatsById.set(stat.user_id, stat);
         }
       });
 
-      (profiles ?? []).forEach((profile) => {
-        const friend = profile as { id: string; name?: string | null };
-        if (friend.name?.trim()) {
-          profileNamesByUserId.set(friend.id, friend.name.trim());
-        }
-      });
-
-      const rows = await Promise.all(
-        friendIds.map(async (friendId) => {
-          const stat = statsByUserId.get(friendId);
-          const latestStat = latestStatsByUserId.get(friendId);
-          const previousStat = previousStatsByUserId.get(friendId);
-          const profileName = profileNamesByUserId.get(friendId);
-          const leetcodeUsername =
-            typeof stat?.leetcode_username === "string" &&
-            stat.leetcode_username.trim()
-              ? stat.leetcode_username.trim()
-              : typeof latestStat?.leetcode_username === "string" &&
-                  latestStat.leetcode_username.trim()
-                ? latestStat.leetcode_username.trim()
-                : null;
-
-          const fallbackRow = {
-            id: friendId,
-            name:
-              profileName ??
-              (leetcodeUsername ? `@${leetcodeUsername}` : "Friend"),
-            todaySolved:
-              toNumber(stat?.solved_today ?? stat?.today_solved) ?? 0,
-            streak: toNumber(stat?.streak ?? latestStat?.streak) ?? 0,
-            backlog: toNumber(stat?.backlog ?? latestStat?.backlog) ?? 0,
-            todaySolvedProblems: getProblemTitles(stat?.today_solved_problems),
-          };
-          if (!leetcodeUsername) {
-            return fallbackRow;
-          }
-
+      // Limit parallelism to avoid LeetCode API throttling.
+      const concurrency = 4;
+      const queue = friendIds.slice();
+      const workers = Array.from({ length: concurrency }, async () => {
+        while (queue.length) {
+          const friendId = queue.shift();
+          if (!friendId) return;
+          const profile = profilesById.get(friendId);
+          const fallbackStat = dailyStatsById.get(friendId);
+          const usernameFromProfile =
+            typeof profile?.leetcode_username === "string" && profile.leetcode_username.trim()
+              ? profile.leetcode_username.trim()
+              : null;
+          const usernameFromDailyStats =
+            typeof fallbackStat?.leetcode_username === "string" &&
+            fallbackStat.leetcode_username.trim()
+              ? fallbackStat.leetcode_username.trim()
+              : null;
+          const username = usernameFromProfile ?? usernameFromDailyStats;
+          if (!username) continue;
+          const target = Math.max(
+            1,
+            Math.trunc(profile?.daily_target ?? fallbackStat?.daily_target ?? 1),
+          );
           try {
-            const submissionsPayload =
-              await getAcceptedSubmissions(leetcodeUsername);
-            const submissions = extractSubmissionRecords(submissionsPayload);
-            const todaySolved = getSolvedTodayCount(submissions).solved_today;
-            const todaySolvedProblems = getSolvedTodayProblems(submissions, {
-              limit: 12,
-            }).problems;
-            const progress = updateBacklogAndStreak({
-              target: Math.max(
-                1,
-                toNumber(stat?.daily_target ?? latestStat?.daily_target) ?? 1,
-              ),
-              solvedToday: todaySolved,
-              previousBacklog: Math.max(
-                0,
-                toNumber(previousStat?.backlog) ?? 0,
-              ),
-              previousStreak: Math.max(0, toNumber(previousStat?.streak) ?? 0),
+            await syncLeetcodeStatsForUserId({
+              userId: friendId,
+              leetcodeUsername: username,
+              dailyTarget: target,
             });
-
-            return {
-              ...fallbackRow,
-              todaySolved,
-              streak: progress.streak,
-              backlog: progress.backlog,
-              todaySolvedProblems,
-            };
           } catch {
-            return fallbackRow;
+            // Best-effort refresh; fall back to last stored stats in the view.
           }
-        }),
-      );
+        }
+      });
+      await Promise.all(workers);
+
+      const { data: friendStatsRows, error: friendStatsError } = await supabase
+        .from("user_dashboard_stats")
+        .select(
+          "user_id, name, total_solved, daily_target, solved_today, today_problem_titles, today_problem_slugs, today_problem_difficulties, problems_solved_since_signup, active_fraction",
+        )
+        .in("user_id", friendIds);
+      if (friendStatsError) throw friendStatsError;
+
+      const statsByUserId = new Map<string, UserDashboardStatsRow>();
+      (friendStatsRows ?? []).forEach((row) => {
+        const stat = row as UserDashboardStatsRow;
+        statsByUserId.set(stat.user_id, stat);
+      });
+
+      const rows: FriendStatsRow[] = friendIds.map((friendId) => {
+        const stat = statsByUserId.get(friendId) ?? null;
+        return {
+          id: friendId,
+          name:
+            (typeof stat?.name === "string" && stat.name.trim()
+              ? stat.name.trim()
+              : null) ?? "Friend",
+          todaySolved: toNumber(stat?.solved_today) ?? 0,
+          problemsSolvedSinceSignup:
+            toNumber(stat?.problems_solved_since_signup) ?? 0,
+          todayProblems: getProblemLinks(
+            stat?.today_problem_titles,
+            stat?.today_problem_slugs,
+            stat?.today_problem_difficulties,
+          ),
+          activeFraction:
+            typeof stat?.active_fraction === "string" && stat.active_fraction.trim()
+              ? stat.active_fraction.trim()
+              : "0/1",
+        };
+      });
+
       setFriendsStats(rows);
     } catch (error) {
       setFriendError(
@@ -363,42 +381,48 @@ export default function DashboardPage() {
         if (error || !user) throw new Error("Unable to load user details.");
         setCurrentUserId(user.id);
 
-        const metadata = user.user_metadata as Record<string, unknown>;
         const todayDate = new Date().toISOString().slice(0, 10);
         await loadFriendsStats(user.id, todayDate);
-        const todayRow = await getTodayDailyStatsRow(user.id, todayDate);
 
-        if (todayRow) {
-          const row = todayRow as DailyStatsRow;
-          const todaySolved = toNumber(row.solved_today ?? row.today_solved) ?? 0;
-          const todaySolvedProblems = getProblemTitles(row.today_solved_problems);
+        // Always refresh user's stats on login/refresh.
+        await syncUserStats(user);
 
-          if (todaySolved > 0 && todaySolvedProblems.length === 0) {
-            const syncedStats = await syncUserStats(user);
-            setStats(syncedStats);
-          } else {
-            setStats({
-              totalSolved: toNumber(row.total_solved) ?? 0,
-              todaySolved,
-              todaySolvedProblems,
-              dailyTarget: Math.max(
-                1,
-                toNumber(row.daily_target ?? metadata.daily_target) ?? 1,
-              ),
-              backlog: Math.max(0, toNumber(row.backlog) ?? 0),
-              streak: Math.max(0, toNumber(row.streak) ?? 0),
-              leetcodeUsername:
-                typeof row.leetcode_username === "string"
-                  ? row.leetcode_username
-                  : typeof metadata.leetcode_username === "string"
-                    ? metadata.leetcode_username
-                    : null,
-            });
-          }
-        } else {
-          const syncedStats = await syncUserStats(user);
-          setStats(syncedStats);
-        }
+        const { data: dashboardRow, error: dashboardError } = await supabase
+          .from("user_dashboard_stats")
+          .select(
+            "user_id, name, total_solved, daily_target, solved_today, today_problem_titles, today_problem_slugs, today_problem_difficulties, problems_solved_since_signup, active_fraction",
+          )
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (dashboardError) throw dashboardError;
+
+        const row = (dashboardRow as UserDashboardStatsRow | null) ?? null;
+        setStats({
+          totalSolved: toNumber(row?.total_solved) ?? 0,
+          todaySolved: toNumber(row?.solved_today) ?? 0,
+          problemsSolvedSinceSignup:
+            toNumber(row?.problems_solved_since_signup) ?? 0,
+          dailyTarget: Math.max(1, toNumber(row?.daily_target) ?? 1),
+          activeFraction:
+            typeof row?.active_fraction === "string" && row.active_fraction.trim()
+              ? row.active_fraction.trim()
+              : "0/1",
+          todaySolvedProblems: getProblemLinks(
+            row?.today_problem_titles,
+            row?.today_problem_slugs,
+            row?.today_problem_difficulties,
+          ),
+          userName:
+            typeof row?.name === "string" && row.name.trim()
+              ? row.name.trim()
+              : typeof user.user_metadata?.name === "string"
+                ? user.user_metadata.name
+                : null,
+          leetcodeUsername:
+            typeof user.user_metadata?.leetcode_username === "string"
+              ? user.user_metadata.leetcode_username
+              : null,
+        });
       } catch (error) {
         setErrorMessage(
           error instanceof Error
@@ -412,97 +436,10 @@ export default function DashboardPage() {
     loadDashboard();
   }, [loadFriendsStats]);
 
-  useEffect(() => {
-    if (!currentUserId) return;
-
-    const todayDate = new Date().toISOString().slice(0, 10);
-    const channel = supabase
-      .channel(`dashboard-live-${currentUserId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "daily_stats" },
-        (payload) => {
-          const changedUserId =
-            typeof payload.new === "object" &&
-            payload.new &&
-            "user_id" in payload.new
-              ? String((payload.new as { user_id?: string }).user_id ?? "")
-              : typeof payload.old === "object" &&
-                  payload.old &&
-                  "user_id" in payload.old
-                ? String((payload.old as { user_id?: string }).user_id ?? "")
-                : "";
-
-          if (!changedUserId) return;
-          if (changedUserId === currentUserId) {
-            void (async () => {
-              const todayRow = await getTodayDailyStatsRow(
-                currentUserId,
-                todayDate,
-              );
-              if (!todayRow) return;
-
-              const row = todayRow as DailyStatsRow;
-              setStats((current) => ({
-                ...current,
-                totalSolved: toNumber(row.total_solved) ?? current.totalSolved,
-                todaySolved:
-                  toNumber(row.solved_today ?? row.today_solved) ??
-                  current.todaySolved,
-                todaySolvedProblems: getProblemTitles(
-                  row.today_solved_problems,
-                ),
-                dailyTarget: Math.max(
-                  1,
-                  toNumber(row.daily_target) ?? current.dailyTarget,
-                ),
-                backlog: Math.max(0, toNumber(row.backlog) ?? current.backlog),
-                streak: Math.max(0, toNumber(row.streak) ?? current.streak),
-                leetcodeUsername:
-                  typeof row.leetcode_username === "string"
-                    ? row.leetcode_username
-                    : current.leetcodeUsername,
-              }));
-            })();
-            return;
-          }
-
-          if (friendIds.includes(changedUserId)) {
-            void loadFriendsStats(currentUserId, todayDate);
-          }
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "friends" },
-        (payload) => {
-          const ownerId =
-            typeof payload.new === "object" &&
-            payload.new &&
-            "user_id" in payload.new
-              ? String((payload.new as { user_id?: string }).user_id ?? "")
-              : typeof payload.old === "object" &&
-                  payload.old &&
-                  "user_id" in payload.old
-                ? String((payload.old as { user_id?: string }).user_id ?? "")
-                : "";
-
-          if (ownerId === currentUserId) {
-            void loadFriendsStats(currentUserId, todayDate);
-          }
-        },
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [currentUserId, friendIds, loadFriendsStats]);
-
   const cards = useMemo(
     () => [
       {
-        label: "Total Solved",
+        label: "Total Problems Solved",
         value: stats.totalSolved,
         subtitle: stats.leetcodeUsername
           ? `@${stats.leetcodeUsername}`
@@ -510,21 +447,25 @@ export default function DashboardPage() {
         accent: "blue" as const,
       },
       {
-        label: "Today Solved",
+        label: "Problems Solved Today",
         value: stats.todaySolved,
         accent: "green" as const,
       },
       {
-        label: "Remaining Today",
-        value: Math.max(stats.dailyTarget - stats.todaySolved, 0),
-        subtitle: `Target: ${stats.dailyTarget} problems/day`,
+        label: "Problems Solved Since Signup",
+        value: stats.problemsSolvedSinceSignup,
+        accent: "rose" as const,
+      },
+      {
+        label: "Daily Target",
+        value: stats.dailyTarget,
+        subtitle: "Problems/day",
         accent: "amber" as const,
       },
-      { label: "Backlog", value: stats.backlog, accent: "rose" as const },
       {
-        label: "Streak",
-        value: stats.streak,
-        subtitle: "Active days streak",
+        label: "Active Days",
+        value: stats.activeFraction,
+        subtitle: "Active days / total days",
         accent: "violet" as const,
       },
     ],
@@ -654,8 +595,8 @@ export default function DashboardPage() {
                 Track momentum, not just totals.
               </h1>
               <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
-                Monitor today&apos;s pace, manage carryover backlog, and keep
-                your progress visible in one responsive workspace.
+                Monitor today&apos;s pace, stay on target, and keep your progress
+                visible in one responsive workspace.
               </p>
             </div>
 
@@ -670,15 +611,15 @@ export default function DashboardPage() {
               </div>
               <div className="rounded-[1.5rem] bg-slate-950 p-4 text-white">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Handle
+                  Profile
+                </p>
+                <p className="mt-2 text-sm font-semibold text-slate-200">
+                  {stats.userName ?? "User"}
                 </p>
                 <p className="mt-2 text-lg font-semibold">
                   {stats.leetcodeUsername
                     ? `@${stats.leetcodeUsername}`
                     : "Add your username"}
-                </p>
-                <p className="mt-1 text-sm text-slate-300">
-                  LeetCode identity synced to dashboard
                 </p>
               </div>
             </div>
@@ -692,7 +633,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
           {cards.map((card) => (
             <MetricCard
               key={card.label}
@@ -704,7 +645,7 @@ export default function DashboardPage() {
           ))}
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <section className="surface-panel rounded-[2.3rem] p-6 sm:p-8">
           <div className="surface-panel rounded-[2rem] p-5 sm:p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -723,99 +664,41 @@ export default function DashboardPage() {
             {loading ? (
               <div className="mt-6 flex items-center gap-3 text-sm text-slate-500">
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500" />
-                Loading your stats...
+                Loading...
               </div>
             ) : !stats.todaySolvedProblems.length ? (
               <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 bg-white/70 px-4 py-6 text-sm leading-7 text-slate-500">
-                No accepted problems solved today yet. Keep going.
+                No accepted problems solved today.
               </div>
             ) : (
-              <ul className="mt-6 grid gap-3 sm:grid-cols-2">
-                {stats.todaySolvedProblems.map((title) => (
+              <ul className="mt-6 grid gap-2.5 sm:grid-cols-2 sm:gap-3">
+                {stats.todaySolvedProblems.map((problem) => (
                   <li
-                    key={title}
-                    className="rounded-[1.25rem] border border-white/70 bg-white/75 px-4 py-3 text-sm font-medium text-slate-700 shadow-sm"
+                    key={`${problem.slug ?? "noslug"}-${problem.title}`}
+                    className="rounded-[1.1rem] border border-slate-200/80 bg-white px-3.5 py-3 text-sm font-medium text-slate-700 shadow-sm sm:rounded-[1.25rem] sm:px-4"
                   >
                     <span className="flex items-start gap-3">
                       <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
-                      <span>{title}</span>
+                      <span className="flex min-w-0 flex-wrap items-center gap-2">
+                      {problem.slug ? (
+                        <a
+                          href={`https://leetcode.com/problems/${problem.slug}/`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block min-w-0 rounded-md px-0.5 py-0.5 text-sky-700 underline decoration-sky-300 underline-offset-2 transition hover:text-sky-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                          title={problem.title}
+                        >
+                          {problem.title}
+                        </a>
+                      ) : (
+                        <span>{problem.title}</span>
+                      )}
+                      <DifficultyBadge difficulty={problem.difficulty} />
+                      </span>
                     </span>
                   </li>
                 ))}
               </ul>
-            )}
-          </div>
-
-          <div className="surface-panel rounded-[2rem] p-5 sm:p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Add Friend
-                </p>
-                <h2 className="mt-2 text-xl font-semibold text-slate-950">
-                  Search by name or handle
-                </h2>
-              </div>
-            </div>
-
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleFriendSearch()}
-                placeholder="Jane or leetcode_handle"
-                className="field-input w-full rounded-2xl px-4 py-3 text-sm"
-              />
-              <button
-                type="button"
-                onClick={handleFriendSearch}
-                disabled={searchLoading}
-                className="gradient-button rounded-2xl px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {searchLoading ? "Searching..." : "Search"}
-              </button>
-            </div>
-
-            {friendError && (
-              <p className="mt-4 rounded-2xl border border-red-100 bg-red-50 px-3 py-3 text-sm text-red-600">
-                {friendError}
-              </p>
-            )}
-            {friendMessage && (
-              <p className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-3 text-sm text-emerald-700">
-                {friendMessage}
-              </p>
-            )}
-
-            {searchResults.length > 0 && (
-              <div className="mt-5 space-y-3">
-                {searchResults.map((user) => (
-                  <div
-                    key={user.id}
-                    className="flex flex-col gap-3 rounded-[1.4rem] border border-white/70 bg-white/80 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">
-                        {user.name || "Unnamed user"}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {user.leetcode_username
-                          ? `@${user.leetcode_username}`
-                          : "No LeetCode username"}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleAddFriend(user.id)}
-                      disabled={addingFriendId === user.id}
-                      className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-700 transition hover:border-sky-300 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {addingFriendId === user.id ? "Adding..." : "Add Friend"}
-                    </button>
-                  </div>
-                ))}
-              </div>
             )}
           </div>
         </section>
@@ -826,19 +709,16 @@ export default function DashboardPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                 Friends
               </p>
-              <h2 className="mt-2 text-xl font-semibold text-slate-950">
-                Leaderboard snapshot
+              <h2 className="mt-2 text-2xl font-semibold text-slate-950 sm:text-3xl">
+                Leaderboard
               </h2>
-              <p className="mt-1 text-sm leading-6 text-slate-500">
-                Compare today solved, streak, and backlog in one place.
-              </p>
             </div>
           </div>
 
           {friendsStatsLoading && (
             <div className="mt-6 flex items-center gap-3 text-sm text-slate-500">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500" />
-              Loading friend stats...
+              Loading...
             </div>
           )}
 
@@ -856,9 +736,9 @@ export default function DashboardPage() {
                     <tr className="border-b border-slate-100 bg-slate-50 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                       <th className="px-4 py-3">Name</th>
                       <th className="px-4 py-3">Today</th>
+                      <th className="px-4 py-3">Since signup</th>
                       <th className="px-4 py-3">Problems</th>
-                      <th className="px-4 py-3">Streak</th>
-                      <th className="px-4 py-3">Backlog</th>
+                      <th className="px-4 py-3">Active days</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -879,17 +759,28 @@ export default function DashboardPage() {
                             {friend.todaySolved}
                           </span>
                         </td>
+                        <td className="px-4 py-4 font-semibold text-rose-700">
+                          {friend.problemsSolvedSinceSignup}
+                        </td>
                         <td className="px-4 py-4">
-                          {friend.todaySolvedProblems.length ? (
-                            <div className="flex flex-wrap gap-1.5">
-                              {friend.todaySolvedProblems.map((title) => (
-                                <span
-                                  key={`${friend.id}-${title}`}
-                                  className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-600"
-                                  title={title}
+                          {friend.todayProblems.length ? (
+                            <div className="flex flex-wrap gap-2.5">
+                              {friend.todayProblems.map((problem) => (
+                                <a
+                                  key={`${friend.id}-${problem.slug ?? "noslug"}-${problem.title}`}
+                                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                                  title={problem.title}
+                                  href={
+                                    problem.slug
+                                      ? `https://leetcode.com/problems/${problem.slug}/`
+                                      : undefined
+                                  }
+                                  target="_blank"
+                                  rel="noreferrer"
                                 >
-                                  {title}
-                                </span>
+                                  {problem.title}
+                                  <DifficultyBadge difficulty={problem.difficulty} />
+                                </a>
                               ))}
                             </div>
                           ) : (
@@ -900,17 +791,7 @@ export default function DashboardPage() {
                         </td>
                         <td className="px-4 py-4">
                           <span className="font-semibold text-violet-700">
-                            {friend.streak}
-                          </span>
-                          <span className="ml-1 text-xs text-slate-400">
-                            days
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span
-                            className={`font-semibold ${friend.backlog > 0 ? "text-rose-600" : "text-slate-500"}`}
-                          >
-                            {friend.backlog}
+                            {friend.activeFraction}
                           </span>
                         </td>
                       </tr>
@@ -930,9 +811,6 @@ export default function DashboardPage() {
                         <h3 className="text-base font-semibold text-slate-900">
                           {friend.name}
                         </h3>
-                        <p className="mt-1 text-xs uppercase tracking-[0.14em] text-slate-400">
-                          Friend stats
-                        </p>
                       </div>
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
@@ -948,20 +826,18 @@ export default function DashboardPage() {
                     <div className="mt-4 grid grid-cols-2 gap-3">
                       <div className="rounded-2xl bg-slate-50 p-3">
                         <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                          Streak
+                          Active days
                         </p>
                         <p className="mt-2 text-xl font-semibold text-violet-700">
-                          {friend.streak}
+                          {friend.activeFraction}
                         </p>
                       </div>
                       <div className="rounded-2xl bg-slate-50 p-3">
                         <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                          Backlog
+                          Since signup
                         </p>
-                        <p
-                          className={`mt-2 text-xl font-semibold ${friend.backlog > 0 ? "text-rose-600" : "text-slate-500"}`}
-                        >
-                          {friend.backlog}
+                        <p className="mt-2 text-xl font-semibold text-rose-700">
+                          {friend.problemsSolvedSinceSignup}
                         </p>
                       </div>
                     </div>
@@ -970,15 +846,23 @@ export default function DashboardPage() {
                       <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
                         Problems
                       </p>
-                      {friend.todaySolvedProblems.length ? (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {friend.todaySolvedProblems.map((title) => (
-                            <span
-                              key={`${friend.id}-${title}`}
-                              className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-600"
+                      {friend.todayProblems.length ? (
+                        <div className="mt-2 flex flex-wrap gap-2.5">
+                          {friend.todayProblems.map((problem) => (
+                            <a
+                              key={`${friend.id}-${problem.slug ?? "noslug"}-${problem.title}`}
+                              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                              href={
+                                problem.slug
+                                  ? `https://leetcode.com/problems/${problem.slug}/`
+                                  : undefined
+                              }
+                              target="_blank"
+                              rel="noreferrer"
                             >
-                              {title}
-                            </span>
+                              {problem.title}
+                              <DifficultyBadge difficulty={problem.difficulty} />
+                            </a>
                           ))}
                         </div>
                       ) : (
@@ -991,6 +875,79 @@ export default function DashboardPage() {
                 ))}
               </div>
             </>
+          )}
+        </section>
+
+        <section className="surface-panel rounded-[2rem] p-5 sm:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Add Friend
+              </p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-950">
+                Search by name or handle
+              </h2>
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleFriendSearch()}
+              placeholder="Jane or leetcode_handle"
+              className="field-input w-full rounded-2xl px-4 py-3 text-sm"
+            />
+            <button
+              type="button"
+              onClick={handleFriendSearch}
+              disabled={searchLoading}
+              className="gradient-button rounded-2xl px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {searchLoading ? "Searching..." : "Search"}
+            </button>
+          </div>
+
+          {friendError && (
+            <p className="mt-4 rounded-2xl border border-red-100 bg-red-50 px-3 py-3 text-sm text-red-600">
+              {friendError}
+            </p>
+          )}
+          {friendMessage && (
+            <p className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-3 text-sm text-emerald-700">
+              {friendMessage}
+            </p>
+          )}
+
+          {searchResults.length > 0 && (
+            <div className="mt-5 space-y-3">
+              {searchResults.map((user) => (
+                <div
+                  key={user.id}
+                  className="flex flex-col gap-3 rounded-[1.4rem] border border-white/70 bg-white/80 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {user.name || "Unnamed user"}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {user.leetcode_username
+                        ? `@${user.leetcode_username}`
+                        : "No LeetCode username"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleAddFriend(user.id)}
+                    disabled={addingFriendId === user.id}
+                    className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-700 transition hover:border-sky-300 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {addingFriendId === user.id ? "Adding..." : "Add Friend"}
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
         </section>
       </div>

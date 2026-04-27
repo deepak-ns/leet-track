@@ -61,7 +61,12 @@ export default function SignupPage() {
     const hasSession = Boolean(data.session);
     if (userId && hasSession) {
       const { error: profileError } = await supabase.from("profiles").upsert(
-        { id: userId, name: form.name, leetcode_username: form.leetcodeUsername },
+        {
+          id: userId,
+          name: form.name,
+          leetcode_username: form.leetcodeUsername,
+          daily_target: target,
+        },
         { onConflict: "id" },
       );
       if (profileError) {
@@ -115,7 +120,7 @@ export default function SignupPage() {
           </h1>
           <p className="mt-4 max-w-xl text-base leading-8 text-slate-600">
             Set your daily target once, connect your LeetCode username, and let the
-            dashboard keep score on backlog, streaks, and momentum.
+            dashboard keep score on solved problems, daily targets, and active days.
           </p>
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2">
