@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { syncLeetcodeStatsForUserId, syncUserStats } from "@/lib/stats-sync";
 import { supabase } from "@/lib/supabase";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 type DashboardStats = {
   totalSolved: number;
@@ -149,10 +150,10 @@ function DifficultyBadge({
   if (!difficulty) return null;
   const className =
     difficulty === "Easy"
-      ? "bg-emerald-100 text-emerald-700"
+      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
       : difficulty === "Medium"
-        ? "bg-amber-100 text-amber-700"
-        : "bg-rose-100 text-rose-700";
+        ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
+        : "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400";
   return (
     <span
       className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${className}`}
@@ -178,32 +179,32 @@ function normalizeDifficulty(
 const accentStyles = {
   blue: {
     bar: "from-sky-400 to-blue-600",
-    num: "text-blue-700",
-    badge: "bg-blue-100 text-blue-700",
+    num: "text-blue-700 dark:text-blue-400",
+    badge: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
     glow: "shadow-sky-500/10",
   },
   green: {
     bar: "from-emerald-400 to-teal-600",
-    num: "text-emerald-700",
-    badge: "bg-emerald-100 text-emerald-700",
+    num: "text-emerald-700 dark:text-emerald-400",
+    badge: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
     glow: "shadow-emerald-500/10",
   },
   amber: {
     bar: "from-amber-300 to-orange-500",
-    num: "text-amber-700",
-    badge: "bg-amber-100 text-amber-700",
+    num: "text-amber-700 dark:text-amber-400",
+    badge: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
     glow: "shadow-amber-500/10",
   },
   rose: {
     bar: "from-rose-400 to-pink-600",
-    num: "text-rose-700",
-    badge: "bg-rose-100 text-rose-700",
+    num: "text-rose-700 dark:text-rose-400",
+    badge: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400",
     glow: "shadow-rose-500/10",
   },
   violet: {
     bar: "from-violet-400 to-indigo-600",
-    num: "text-violet-700",
-    badge: "bg-violet-100 text-violet-700",
+    num: "text-violet-700 dark:text-violet-400",
+    badge: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400",
     glow: "shadow-violet-500/10",
   },
 };
@@ -233,7 +234,7 @@ function MetricCard({
         {value}
       </p>
       {subtitle && (
-        <p className="mt-2 max-w-[18rem] text-sm leading-6 text-slate-500">
+        <p className="mt-2 max-w-[18rem] text-sm leading-6 text-slate-500 dark:text-slate-400">
           {subtitle}
         </p>
       )}
@@ -753,28 +754,28 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <span className="eyebrow">TrackLeet</span>
-              <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+              <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-100 sm:text-4xl">
                 Track momentum, not just totals.
               </h1>
-              <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
+              <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-400 sm:text-base">
                 Monitor today&apos;s pace, stay on target, and keep your
                 progress visible in one responsive workspace.
               </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[23rem]">
-              <div className="rounded-[1.5rem] border border-white/70 bg-white/75 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+              <div className="rounded-[1.5rem] border border-white/70 bg-white/75 dark:border-slate-700 dark:bg-slate-800/75 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                   Focus
                 </p>
-                <p className="mt-2 text-sm leading-6 text-slate-700">
+                <p className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-300">
                   {focusSummary}
                 </p>
               </div>
-              <div className="rounded-[1.5rem] bg-slate-950 p-4 text-white">
+              <div className="rounded-[1.5rem] bg-slate-950 dark:bg-slate-800 p-4 text-white">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text font-bold uppercase tracking-[0.18em] text-slate-050">
+                    <p className="text font-bold uppercase tracking-[0.18em] text-slate-050 dark:text-slate-100">
                       {stats.userName ?? "User"}
                     </p>
 
@@ -784,13 +785,16 @@ export default function DashboardPage() {
                         : "Add your username"}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100"
-                  >
-                    Logout
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <ThemeToggle />
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 dark:border-red-900 dark:bg-red-900/40 dark:text-red-400 dark:hover:border-red-700 dark:hover:bg-red-900/60"
+                    >
+                      Logout
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -798,9 +802,9 @@ export default function DashboardPage() {
         </section>
 
         {errorMessage && (
-          <div className="flex items-start gap-3 rounded-[1.5rem] border border-red-100 bg-red-50 px-4 py-3.5">
-            <span className="mt-0.5 text-red-500">!</span>
-            <p className="text-sm leading-6 text-red-700">{errorMessage}</p>
+          <div className="flex items-start gap-3 rounded-[1.5rem] border border-red-100 bg-red-50 dark:border-red-900/50 dark:bg-red-900/40 px-4 py-3.5">
+            <span className="mt-0.5 text-red-500 dark:text-red-400">!</span>
+            <p className="text-sm leading-6 text-red-700 dark:text-red-400">{errorMessage}</p>
           </div>
         )}
 
@@ -819,25 +823,25 @@ export default function DashboardPage() {
           <div className="surface-panel rounded-[2rem] p-5 sm:p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                   Solved Today
                 </p>
-                <h2 className="mt-2 text-xl font-semibold text-slate-950">
+                <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-slate-100">
                   Accepted problems
                 </h2>
               </div>
-              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
                 {stats.todaySolved} done
               </span>
             </div>
 
             {loading ? (
-              <div className="mt-6 flex items-center gap-3 text-sm text-slate-500">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500" />
+              <div className="mt-6 flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 dark:border-slate-700 border-t-sky-500" />
                 Loading...
               </div>
             ) : !stats.todaySolvedProblems.length ? (
-              <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 bg-white/70 px-4 py-6 text-sm leading-7 text-slate-500">
+              <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 dark:border-slate-600 bg-white/70 dark:bg-slate-800/50 px-4 py-6 text-sm leading-7 text-slate-500 dark:text-slate-400">
                 No accepted problems solved today.
               </div>
             ) : (
@@ -845,7 +849,7 @@ export default function DashboardPage() {
                 {stats.todaySolvedProblems.map((problem) => (
                   <li
                     key={`${problem.slug ?? "noslug"}-${problem.title}`}
-                    className="rounded-[1.1rem] border border-slate-200/80 bg-white px-3.5 py-3 text-sm font-medium text-slate-700 shadow-sm sm:rounded-[1.25rem] sm:px-4"
+                    className="rounded-[1.1rem] border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 shadow-sm sm:rounded-[1.25rem] sm:px-4"
                   >
                     <span className="flex items-start gap-3">
                       <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
@@ -855,7 +859,7 @@ export default function DashboardPage() {
                             href={`https://leetcode.com/problems/${problem.slug}/`}
                             target="_blank"
                             rel="noreferrer"
-                            className="block min-w-0 rounded-md px-0.5 py-0.5 text-sky-700 underline decoration-sky-300 underline-offset-2 transition hover:text-sky-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                            className="block min-w-0 rounded-md px-0.5 py-0.5 text-sky-700 dark:text-sky-400 underline decoration-sky-300 dark:decoration-sky-700 underline-offset-2 transition hover:text-sky-600 dark:hover:text-sky-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
                             title={problem.title}
                           >
                             {problem.title}
@@ -875,31 +879,31 @@ export default function DashboardPage() {
         <section className="surface-panel rounded-[2rem] p-5 sm:p-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xl font-bold uppercase tracking-[0.18em] text-slate-1000">
+              <p className="text-xl font-bold uppercase tracking-[0.18em] text-slate-1000 dark:text-slate-100">
                 Friends
               </p>
             </div>
           </div>
 
           {friendsStatsLoading && (
-            <div className="mt-6 flex items-center gap-3 text-sm text-slate-500">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500" />
+            <div className="mt-6 flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 dark:border-slate-700 border-t-sky-500" />
               Loading...
             </div>
           )}
 
           {!friendsStatsLoading && !friendsStats.length && (
-            <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 bg-white/70 px-4 py-6 text-sm leading-7 text-slate-500">
+            <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 dark:border-slate-600 bg-white/70 dark:bg-slate-800/50 px-4 py-6 text-sm leading-7 text-slate-500 dark:text-slate-400">
               No friends yet. Add friends above to see their stats here.
             </div>
           )}
 
           {!friendsStatsLoading && friendsStats.length > 0 && (
             <>
-              <div className="mt-6 hidden overflow-x-auto rounded-[1.5rem] border border-slate-100 bg-white xl:block">
+              <div className="mt-6 hidden overflow-x-auto rounded-[1.5rem] border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 xl:block">
                 <table className="min-w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    <tr className="border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                       <th className="px-4 py-3">Name</th>
                       <th className="px-4 py-3">Today</th>
                       <th className="px-4 py-3">Since signup</th>
@@ -908,14 +912,14 @@ export default function DashboardPage() {
                       <th className="px-4 py-3">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                     {friendsStats.map((friend) => (
                       <tr
                         key={friend.id}
-                        className={`text-slate-800 transition ${
+                        className={`text-slate-800 dark:text-slate-300 transition ${
                           selectedFriendId === friend.id
-                            ? "bg-slate-100/80"
-                            : "hover:bg-slate-50/80"
+                            ? "bg-slate-100/80 dark:bg-slate-700/80"
+                            : "hover:bg-slate-50/80 dark:hover:bg-slate-700/50"
                         }`}
                       >
                         <td className="px-4 py-4 font-medium">
@@ -924,7 +928,7 @@ export default function DashboardPage() {
                             onClick={() =>
                               loadFriendHistory(friend.id, friend.name)
                             }
-                            className="text-left text-sm font-semibold text-slate-900 hover:text-sky-700"
+                            className="text-left text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-sky-700 dark:hover:text-sky-400"
                           >
                             {friend.name}
                           </button>
@@ -933,14 +937,14 @@ export default function DashboardPage() {
                           <span
                             className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
                               friend.todaySolved > 0
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-slate-100 text-slate-500"
+                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
+                                : "bg-slate-100 text-slate-500 dark:bg-slate-900 dark:text-slate-400"
                             }`}
                           >
                             {friend.todaySolved}
                           </span>
                         </td>
-                        <td className="px-4 py-4 font-semibold text-rose-700">
+                        <td className="px-4 py-4 font-semibold text-rose-700 dark:text-rose-400">
                           {friend.problemsSolvedSinceSignup}
                         </td>
                         <td className="px-4 py-4">
@@ -949,7 +953,7 @@ export default function DashboardPage() {
                               {friend.todayProblems.map((problem) => (
                                 <a
                                   key={`${friend.id}-${problem.slug ?? "noslug"}-${problem.title}`}
-                                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-1000 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-2.5 py-1.5 text-xs text-slate-1000 dark:text-slate-300 transition hover:border-sky-200 dark:hover:border-sky-700 hover:bg-sky-50 dark:hover:bg-sky-900/40 hover:text-sky-700 dark:hover:text-sky-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
                                   title={problem.title}
                                   href={
                                     problem.slug
@@ -967,13 +971,13 @@ export default function DashboardPage() {
                               ))}
                             </div>
                           ) : (
-                            <span className="text-xs text-slate-300">
+                            <span className="text-xs text-slate-300 dark:text-slate-500">
                               No problems yet
                             </span>
                           )}
                         </td>
                         <td className="px-4 py-4">
-                          <span className="font-semibold text-violet-700">
+                          <span className="font-semibold text-violet-700 dark:text-violet-400">
                             {friend.activeFraction}
                           </span>
                         </td>
@@ -982,7 +986,7 @@ export default function DashboardPage() {
                             type="button"
                             onClick={() => handleRemoveFriend(friend.id)}
                             disabled={removingFriendId === friend.id}
-                            className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 dark:border-red-900 dark:bg-red-900/40 dark:text-red-400 dark:hover:border-red-700 dark:hover:bg-red-900/60 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             {removingFriendId === friend.id
                               ? "Removing..."
@@ -999,9 +1003,9 @@ export default function DashboardPage() {
                 {friendsStats.map((friend) => (
                   <article
                     key={friend.id}
-                    className={`rounded-[1.5rem] border border-white/70 bg-white/80 p-4 shadow-sm ${
+                    className={`rounded-[1.5rem] border border-white/70 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 p-4 shadow-sm ${
                       selectedFriendId === friend.id
-                        ? "border-sky-300 bg-sky-50/40"
+                        ? "border-sky-300 dark:border-sky-700 bg-sky-50/40 dark:bg-sky-900/20"
                         : ""
                     }`}
                   >
@@ -1012,7 +1016,7 @@ export default function DashboardPage() {
                           onClick={() =>
                             loadFriendHistory(friend.id, friend.name)
                           }
-                          className="text-left text-base font-semibold text-slate-900 hover:text-sky-700"
+                          className="text-left text-base font-semibold text-slate-900 dark:text-slate-100 hover:text-sky-700 dark:hover:text-sky-400"
                         >
                           {friend.name}
                         </button>
@@ -1021,8 +1025,8 @@ export default function DashboardPage() {
                         <span
                           className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
                             friend.todaySolved > 0
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-slate-100 text-slate-500"
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
+                              : "bg-slate-100 text-slate-500 dark:bg-slate-900 dark:text-slate-400"
                           }`}
                         >
                           {friend.todaySolved} today
@@ -1031,7 +1035,7 @@ export default function DashboardPage() {
                           type="button"
                           onClick={() => handleRemoveFriend(friend.id)}
                           disabled={removingFriendId === friend.id}
-                          className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 dark:border-red-900 dark:bg-red-900/40 dark:text-red-400 dark:hover:border-red-700 dark:hover:bg-red-900/60 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {removingFriendId === friend.id
                             ? "Removing..."
@@ -1041,26 +1045,26 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="mt-4 grid grid-cols-2 gap-3">
-                      <div className="rounded-2xl bg-slate-50 p-3">
-                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                      <div className="rounded-2xl bg-slate-50 dark:bg-slate-900 p-3">
+                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
                           Active days
                         </p>
-                        <p className="mt-2 text-xl font-semibold text-violet-700">
+                        <p className="mt-2 text-xl font-semibold text-violet-700 dark:text-violet-400">
                           {friend.activeFraction}
                         </p>
                       </div>
-                      <div className="rounded-2xl bg-slate-50 p-3">
-                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                      <div className="rounded-2xl bg-slate-50 dark:bg-slate-900 p-3">
+                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
                           Total Solved Since signup
                         </p>
-                        <p className="mt-2 text-xl font-semibold text-rose-700">
+                        <p className="mt-2 text-xl font-semibold text-rose-700 dark:text-rose-400">
                           {friend.problemsSolvedSinceSignup}
                         </p>
                       </div>
                     </div>
 
                     <div className="mt-4">
-                      <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                      <p className="text-xs uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
                         Problems
                       </p>
                       {friend.todayProblems.length ? (
@@ -1068,7 +1072,7 @@ export default function DashboardPage() {
                           {friend.todayProblems.map((problem) => (
                             <a
                               key={`${friend.id}-${problem.slug ?? "noslug"}-${problem.title}`}
-                              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-2.5 py-1.5 text-xs text-slate-700 dark:text-slate-300 transition hover:border-sky-200 dark:hover:border-sky-700 hover:bg-sky-50 dark:hover:bg-sky-900/40 hover:text-sky-700 dark:hover:text-sky-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
                               href={
                                 problem.slug
                                   ? `https://leetcode.com/problems/${problem.slug}/`
@@ -1085,7 +1089,7 @@ export default function DashboardPage() {
                           ))}
                         </div>
                       ) : (
-                        <p className="mt-2 text-sm text-slate-500">
+                        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                           No problems solved today yet.
                         </p>
                       )}
@@ -1100,30 +1104,30 @@ export default function DashboardPage() {
         <section className="surface-panel rounded-[2rem] p-6 sm:p-8">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="mt-2 text-xl font-semibold text-slate-950">
+              <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-slate-100">
                 {selectedFriendName
                   ? `${selectedFriendName}'s solved problems`
                   : "Select a friend to view history"}
               </h2>
             </div>
             {selectedFriendName && (
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+              <span className="rounded-full bg-slate-100 dark:bg-slate-900 px-3 py-1 text-xs font-semibold text-slate-700 dark:text-slate-400">
                 {friendHistory.length} problems
               </span>
             )}
           </div>
 
           {friendHistoryLoading ? (
-            <div className="mt-6 flex items-center gap-3 text-sm text-slate-500">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500" />
+            <div className="mt-6 flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 dark:border-slate-700 border-t-sky-500" />
               Loading friend history...
             </div>
           ) : friendHistoryError ? (
-            <div className="mt-6 rounded-[1.5rem] border border-red-100 bg-red-50 px-4 py-6 text-sm leading-7 text-red-700">
+            <div className="mt-6 rounded-[1.5rem] border border-red-100 dark:border-red-900/50 bg-red-50 dark:bg-red-900/40 px-4 py-6 text-sm leading-7 text-red-700 dark:text-red-400">
               {friendHistoryError}
             </div>
           ) : selectedFriendName && !friendHistory.length ? (
-            <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 bg-white/70 px-4 py-6 text-sm leading-7 text-slate-500">
+            <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 dark:border-slate-600 bg-white/70 dark:bg-slate-800/50 px-4 py-6 text-sm leading-7 text-slate-500 dark:text-slate-400">
               No solved problems found for this friend yet.
             </div>
           ) : selectedFriendName ? (
@@ -1138,17 +1142,17 @@ export default function DashboardPage() {
               ).map(([date, entries]) => (
                 <div
                   key={date}
-                  className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4"
+                  className="rounded-[1.5rem] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-slate-800">
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-300">
                       {new Date(date).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
                         year: "numeric",
                       })}
                     </p>
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
                       {entries.length} problem{entries.length === 1 ? "" : "s"}
                     </span>
                   </div>
@@ -1156,7 +1160,7 @@ export default function DashboardPage() {
                     {entries.map((item) => (
                       <div
                         key={`${date}-${item.problemSlug ?? "noslug"}-${item.createdAt}`}
-                        className="rounded-2xl bg-white p-4 shadow-sm"
+                        className="rounded-2xl bg-white dark:bg-slate-800 p-4 shadow-sm"
                       >
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <div>
@@ -1165,16 +1169,16 @@ export default function DashboardPage() {
                                 href={`https://leetcode.com/problems/${item.problemSlug}/`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="text-sm font-semibold text-sky-700 underline decoration-sky-300 underline-offset-2 hover:text-sky-600"
+                                className="text-sm font-semibold text-sky-700 dark:text-sky-400 underline decoration-sky-300 dark:decoration-sky-700 underline-offset-2 hover:text-sky-600 dark:hover:text-sky-300"
                               >
                                 {item.problemTitle}
                               </a>
                             ) : (
-                              <p className="text-sm font-semibold text-slate-900">
+                              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                                 {item.problemTitle}
                               </p>
                             )}
-                            <p className="mt-1 text-xs text-slate-500">
+                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                               Solved at{" "}
                               {new Date(item.createdAt).toLocaleTimeString(
                                 "en-US",
@@ -1196,7 +1200,7 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : (
-            <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 bg-white/70 px-4 py-6 text-sm leading-7 text-slate-500">
+            <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 dark:border-slate-600 bg-white/70 dark:bg-slate-800/50 px-4 py-6 text-sm leading-7 text-slate-500 dark:text-slate-400">
               Click a name above to load their solved problem history.
             </div>
           )}
@@ -1205,10 +1209,10 @@ export default function DashboardPage() {
         <section className="surface-panel rounded-[2rem] p-5 sm:p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                 Add Friend
               </p>
-              <h2 className="mt-2 text-xl font-semibold text-slate-950">
+              <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-slate-100">
                 Search by name or handle
               </h2>
             </div>
@@ -1234,12 +1238,12 @@ export default function DashboardPage() {
           </div>
 
           {friendError && (
-            <p className="mt-4 rounded-2xl border border-red-100 bg-red-50 px-3 py-3 text-sm text-red-600">
+            <p className="mt-4 rounded-2xl border border-red-100 dark:border-red-900/50 bg-red-50 dark:bg-red-900/40 px-3 py-3 text-sm text-red-600 dark:text-red-400">
               {friendError}
             </p>
           )}
           {friendMessage && (
-            <p className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-3 text-sm text-emerald-700">
+            <p className="mt-4 rounded-2xl border border-emerald-100 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-900/40 px-3 py-3 text-sm text-emerald-700 dark:text-emerald-400">
               {friendMessage}
             </p>
           )}
@@ -1249,13 +1253,13 @@ export default function DashboardPage() {
               {searchResults.map((user) => (
                 <div
                   key={user.id}
-                  className="flex flex-col gap-3 rounded-[1.4rem] border border-white/70 bg-white/80 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-3 rounded-[1.4rem] border border-white/70 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                       {user.name || "Unnamed user"}
                     </p>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                       {user.leetcode_username
                         ? `@${user.leetcode_username}`
                         : "No LeetCode username"}
@@ -1265,7 +1269,7 @@ export default function DashboardPage() {
                     type="button"
                     onClick={() => handleAddFriend(user.id)}
                     disabled={addingFriendId === user.id}
-                    className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-700 transition hover:border-sky-300 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-2xl border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-900/40 px-4 py-2 text-sm font-semibold text-sky-700 dark:text-sky-400 transition hover:border-sky-300 dark:hover:border-sky-700 hover:bg-sky-100 dark:hover:bg-sky-900/60 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {addingFriendId === user.id ? "Adding..." : "Add Friend"}
                   </button>
