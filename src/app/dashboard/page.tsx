@@ -278,6 +278,11 @@ export default function DashboardPage() {
     null,
   );
 
+  const [userHistory, setUserHistory] = useState<FriendHistoryProblem[]>([]);
+  const [userHistoryLoading, setUserHistoryLoading] = useState(false);
+  const [userHistoryError, setUserHistoryError] = useState<string | null>(null);
+  const [showingUserHistory, setShowingUserHistory] = useState(false);
+
   const router = useRouter();
 
   const loadFriendsStats = useCallback(async (userId: string, date: string) => {
@@ -430,6 +435,7 @@ export default function DashboardPage() {
     setFriendHistory([]);
     setFriendHistoryError(null);
     setFriendHistoryLoading(true);
+    setShowingUserHistory(false);
 
     try {
       const { data, error } = await supabase
@@ -474,6 +480,63 @@ export default function DashboardPage() {
       );
     } finally {
       setFriendHistoryLoading(false);
+    }
+  }
+
+  async function loadUserHistory() {
+    if (!currentUserId) return;
+    if (showingUserHistory) return;
+
+    setShowingUserHistory(true);
+    setSelectedFriendId(null);
+    setSelectedFriendName(null);
+    setUserHistory([]);
+    setUserHistoryError(null);
+    setUserHistoryLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from("solved_problems")
+        .select(
+          "problem_title, problem_slug, problem_difficulty, solved_date, created_at",
+        )
+        .eq("user_id", currentUserId)
+        .order("solved_date", { ascending: false })
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+
+      const history = (data ?? [])
+        .map((row) => {
+          const record = row as {
+            problem_title?: string | null;
+            problem_slug?: string | null;
+            problem_difficulty?: string | null;
+            solved_date?: string | null;
+            created_at?: string | null;
+          };
+          return {
+            solvedDate: record.solved_date ?? "",
+            createdAt: record.created_at ?? "",
+            problemTitle: record.problem_title ?? "Untitled problem",
+            problemSlug:
+              typeof record.problem_slug === "string" &&
+              record.problem_slug.trim()
+                ? record.problem_slug.trim()
+                : null,
+            problemDifficulty: normalizeDifficulty(record.problem_difficulty),
+          };
+        })
+        .filter((item) => item.problemTitle.length > 0);
+
+      setUserHistory(history);
+    } catch (error) {
+      setUserHistoryError(
+        error instanceof Error
+          ? error.message
+          : "Unable to load your history.",
+      );
+    } finally {
+      setUserHistoryLoading(false);
     }
   }
 
@@ -1105,35 +1168,56 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-slate-100">
-                {selectedFriendName
-                  ? `${selectedFriendName}'s solved problems`
-                  : "Select a friend to view history"}
+                {showingUserHistory
+                  ? "My Solved Problems "
+                  : selectedFriendName
+                    ? `${selectedFriendName}'s solved problems`
+                    : "Solved Problems History"}
               </h2>
             </div>
-            {selectedFriendName && (
-              <span className="rounded-full bg-slate-100 dark:bg-slate-900 px-3 py-1 text-xs font-semibold text-slate-700 dark:text-slate-400">
-                {friendHistory.length} problems
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {!showingUserHistory && (
+                <button
+                  type="button"
+                  onClick={loadUserHistory}
+                  className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 transition hover:border-sky-300 hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-900/40 dark:text-sky-400 dark:hover:border-sky-700 dark:hover:bg-sky-900/60"
+                >
+                  View My History
+                </button>
+              )}
+              {(selectedFriendName || showingUserHistory) && (
+                <span className="rounded-full bg-slate-100 dark:bg-slate-900 px-3 py-1 text-xs font-semibold text-slate-700 dark:text-slate-400">
+                  {(showingUserHistory ? userHistory : friendHistory).length} problems
+                </span>
+              )}
+            </div>
           </div>
 
-          {friendHistoryLoading ? (
+          {friendHistoryLoading || userHistoryLoading ? (
             <div className="mt-6 flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 dark:border-slate-700 border-t-sky-500" />
-              Loading friend history...
+              {showingUserHistory ? "Loading your history..." : "Loading friend history..."}
             </div>
           ) : friendHistoryError ? (
             <div className="mt-6 rounded-[1.5rem] border border-red-100 dark:border-red-900/50 bg-red-50 dark:bg-red-900/40 px-4 py-6 text-sm leading-7 text-red-700 dark:text-red-400">
               {friendHistoryError}
             </div>
+          ) : userHistoryError ? (
+            <div className="mt-6 rounded-[1.5rem] border border-red-100 dark:border-red-900/50 bg-red-50 dark:bg-red-900/40 px-4 py-6 text-sm leading-7 text-red-700 dark:text-red-400">
+              {userHistoryError}
+            </div>
           ) : selectedFriendName && !friendHistory.length ? (
             <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 dark:border-slate-600 bg-white/70 dark:bg-slate-800/50 px-4 py-6 text-sm leading-7 text-slate-500 dark:text-slate-400">
               No solved problems found for this friend yet.
             </div>
-          ) : selectedFriendName ? (
+          ) : showingUserHistory && !userHistory.length ? (
+            <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 dark:border-slate-600 bg-white/70 dark:bg-slate-800/50 px-4 py-6 text-sm leading-7 text-slate-500 dark:text-slate-400">
+              No solved problems found in your history yet. Keep solving problems to build your history!
+            </div>
+          ) : selectedFriendName || showingUserHistory ? (
             <div className="mt-6 space-y-6">
               {Array.from(
-                friendHistory.reduce((groups, item) => {
+                (showingUserHistory ? userHistory : friendHistory).reduce((groups, item) => {
                   const key = item.solvedDate || "Unknown date";
                   if (!groups.has(key)) groups.set(key, []);
                   groups.get(key)?.push(item);
@@ -1201,7 +1285,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 dark:border-slate-600 bg-white/70 dark:bg-slate-800/50 px-4 py-6 text-sm leading-7 text-slate-500 dark:text-slate-400">
-              Click a name above to load their solved problem history.
+              Click a friend&apos;s name in the Friends section above to view their history, or click &quot;View My History&quot; to see your own solved problems.
             </div>
           )}
         </section>
