@@ -53,6 +53,14 @@ type FriendStatsRow = {
   activeFraction: string;
 };
 
+type FriendHistoryProblem = {
+  solvedDate: string;
+  createdAt: string;
+  problemTitle: string;
+  problemSlug: string | null;
+  problemDifficulty: "Easy" | "Medium" | "Hard" | null;
+};
+
 type UserDashboardStatsRow = {
   user_id: string;
   name: string | null;
@@ -154,6 +162,19 @@ function DifficultyBadge({
   );
 }
 
+function normalizeDifficulty(
+  value: unknown,
+): "Easy" | "Medium" | "Hard" | null {
+  const raw = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return raw === "easy"
+    ? "Easy"
+    : raw === "medium"
+      ? "Medium"
+      : raw === "hard"
+        ? "Hard"
+        : null;
+}
+
 const accentStyles = {
   blue: {
     bar: "from-sky-400 to-blue-600",
@@ -244,6 +265,17 @@ export default function DashboardPage() {
   const [friendsStats, setFriendsStats] = useState<FriendStatsRow[]>([]);
   const [friendsStatsLoading, setFriendsStatsLoading] = useState(false);
   const [friendIds, setFriendIds] = useState<string[]>([]);
+  const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
+  const [selectedFriendName, setSelectedFriendName] = useState<string | null>(
+    null,
+  );
+  const [friendHistory, setFriendHistory] = useState<FriendHistoryProblem[]>(
+    [],
+  );
+  const [friendHistoryLoading, setFriendHistoryLoading] = useState(false);
+  const [friendHistoryError, setFriendHistoryError] = useState<string | null>(
+    null,
+  );
 
   const router = useRouter();
 
@@ -386,6 +418,63 @@ export default function DashboardPage() {
       setFriendsStatsLoading(false);
     }
   }, []);
+
+  async function loadFriendHistory(
+    friendId: string,
+    friendName: string | null,
+  ) {
+    if (selectedFriendId === friendId) return;
+    setSelectedFriendId(friendId);
+    setSelectedFriendName(friendName);
+    setFriendHistory([]);
+    setFriendHistoryError(null);
+    setFriendHistoryLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from("solved_problems")
+        .select(
+          "problem_title, problem_slug, problem_difficulty, solved_date, created_at",
+        )
+        .eq("user_id", friendId)
+        .order("solved_date", { ascending: false })
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+
+      const history = (data ?? [])
+        .map((row) => {
+          const record = row as {
+            problem_title?: string | null;
+            problem_slug?: string | null;
+            problem_difficulty?: string | null;
+            solved_date?: string | null;
+            created_at?: string | null;
+          };
+          return {
+            solvedDate: record.solved_date ?? "",
+            createdAt: record.created_at ?? "",
+            problemTitle: record.problem_title ?? "Untitled problem",
+            problemSlug:
+              typeof record.problem_slug === "string" &&
+              record.problem_slug.trim()
+                ? record.problem_slug.trim()
+                : null,
+            problemDifficulty: normalizeDifficulty(record.problem_difficulty),
+          };
+        })
+        .filter((item) => item.problemTitle.length > 0);
+
+      setFriendHistory(history);
+    } catch (error) {
+      setFriendHistoryError(
+        error instanceof Error
+          ? error.message
+          : "Unable to load friend history.",
+      );
+    } finally {
+      setFriendHistoryLoading(false);
+    }
+  }
 
   useEffect(() => {
     async function loadDashboard() {
@@ -629,6 +718,12 @@ export default function DashboardPage() {
         if (fallbackError) throw fallbackError;
       }
       setFriendMessage("Friend removed successfully.");
+      if (selectedFriendId === friendUserId) {
+        setSelectedFriendId(null);
+        setSelectedFriendName(null);
+        setFriendHistory([]);
+        setFriendHistoryError(null);
+      }
       await loadFriendsStats(
         currentUserId,
         new Date().toISOString().slice(0, 10),
@@ -720,6 +815,63 @@ export default function DashboardPage() {
             />
           ))}
         </section>
+        <section className="surface-panel rounded-[2.3rem] p-6 sm:p-8">
+          <div className="surface-panel rounded-[2rem] p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Solved Today
+                </p>
+                <h2 className="mt-2 text-xl font-semibold text-slate-950">
+                  Accepted problems
+                </h2>
+              </div>
+              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                {stats.todaySolved} done
+              </span>
+            </div>
+
+            {loading ? (
+              <div className="mt-6 flex items-center gap-3 text-sm text-slate-500">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500" />
+                Loading...
+              </div>
+            ) : !stats.todaySolvedProblems.length ? (
+              <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 bg-white/70 px-4 py-6 text-sm leading-7 text-slate-500">
+                No accepted problems solved today.
+              </div>
+            ) : (
+              <ul className="mt-6 grid gap-2.5 sm:grid-cols-2 sm:gap-3">
+                {stats.todaySolvedProblems.map((problem) => (
+                  <li
+                    key={`${problem.slug ?? "noslug"}-${problem.title}`}
+                    className="rounded-[1.1rem] border border-slate-200/80 bg-white px-3.5 py-3 text-sm font-medium text-slate-700 shadow-sm sm:rounded-[1.25rem] sm:px-4"
+                  >
+                    <span className="flex items-start gap-3">
+                      <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+                      <span className="flex min-w-0 flex-wrap items-center gap-2">
+                        {problem.slug ? (
+                          <a
+                            href={`https://leetcode.com/problems/${problem.slug}/`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block min-w-0 rounded-md px-0.5 py-0.5 text-sky-700 underline decoration-sky-300 underline-offset-2 transition hover:text-sky-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                            title={problem.title}
+                          >
+                            {problem.title}
+                          </a>
+                        ) : (
+                          <span>{problem.title}</span>
+                        )}
+                        <DifficultyBadge difficulty={problem.difficulty} />
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
         <section className="surface-panel rounded-[2rem] p-5 sm:p-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -760,9 +912,23 @@ export default function DashboardPage() {
                     {friendsStats.map((friend) => (
                       <tr
                         key={friend.id}
-                        className="text-slate-800 transition hover:bg-slate-50/80"
+                        className={`text-slate-800 transition ${
+                          selectedFriendId === friend.id
+                            ? "bg-slate-100/80"
+                            : "hover:bg-slate-50/80"
+                        }`}
                       >
-                        <td className="px-4 py-4 font-medium">{friend.name}</td>
+                        <td className="px-4 py-4 font-medium">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              loadFriendHistory(friend.id, friend.name)
+                            }
+                            className="text-left text-sm font-semibold text-slate-900 hover:text-sky-700"
+                          >
+                            {friend.name}
+                          </button>
+                        </td>
                         <td className="px-4 py-4">
                           <span
                             className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
@@ -833,13 +999,23 @@ export default function DashboardPage() {
                 {friendsStats.map((friend) => (
                   <article
                     key={friend.id}
-                    className="rounded-[1.5rem] border border-white/70 bg-white/80 p-4 shadow-sm"
+                    className={`rounded-[1.5rem] border border-white/70 bg-white/80 p-4 shadow-sm ${
+                      selectedFriendId === friend.id
+                        ? "border-sky-300 bg-sky-50/40"
+                        : ""
+                    }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <h3 className="text-base font-semibold text-slate-900">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            loadFriendHistory(friend.id, friend.name)
+                          }
+                          className="text-left text-base font-semibold text-slate-900 hover:text-sky-700"
+                        >
                           {friend.name}
-                        </h3>
+                        </button>
                       </div>
                       <div className="flex items-center gap-2">
                         <span
@@ -921,62 +1097,109 @@ export default function DashboardPage() {
           )}
         </section>
 
-        <section className="surface-panel rounded-[2.3rem] p-6 sm:p-8">
-          <div className="surface-panel rounded-[2rem] p-5 sm:p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Solved Today
-                </p>
-                <h2 className="mt-2 text-xl font-semibold text-slate-950">
-                  Accepted problems
-                </h2>
-              </div>
-              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                {stats.todaySolved} done
-              </span>
+        <section className="surface-panel rounded-[2rem] p-6 sm:p-8">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="mt-2 text-xl font-semibold text-slate-950">
+                {selectedFriendName
+                  ? `${selectedFriendName}'s solved problems`
+                  : "Select a friend to view history"}
+              </h2>
             </div>
-
-            {loading ? (
-              <div className="mt-6 flex items-center gap-3 text-sm text-slate-500">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500" />
-                Loading...
-              </div>
-            ) : !stats.todaySolvedProblems.length ? (
-              <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 bg-white/70 px-4 py-6 text-sm leading-7 text-slate-500">
-                No accepted problems solved today.
-              </div>
-            ) : (
-              <ul className="mt-6 grid gap-2.5 sm:grid-cols-2 sm:gap-3">
-                {stats.todaySolvedProblems.map((problem) => (
-                  <li
-                    key={`${problem.slug ?? "noslug"}-${problem.title}`}
-                    className="rounded-[1.1rem] border border-slate-200/80 bg-white px-3.5 py-3 text-sm font-medium text-slate-700 shadow-sm sm:rounded-[1.25rem] sm:px-4"
-                  >
-                    <span className="flex items-start gap-3">
-                      <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
-                      <span className="flex min-w-0 flex-wrap items-center gap-2">
-                        {problem.slug ? (
-                          <a
-                            href={`https://leetcode.com/problems/${problem.slug}/`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="block min-w-0 rounded-md px-0.5 py-0.5 text-sky-700 underline decoration-sky-300 underline-offset-2 transition hover:text-sky-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
-                            title={problem.title}
-                          >
-                            {problem.title}
-                          </a>
-                        ) : (
-                          <span>{problem.title}</span>
-                        )}
-                        <DifficultyBadge difficulty={problem.difficulty} />
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
+            {selectedFriendName && (
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                {friendHistory.length} problems
+              </span>
             )}
           </div>
+
+          {friendHistoryLoading ? (
+            <div className="mt-6 flex items-center gap-3 text-sm text-slate-500">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500" />
+              Loading friend history...
+            </div>
+          ) : friendHistoryError ? (
+            <div className="mt-6 rounded-[1.5rem] border border-red-100 bg-red-50 px-4 py-6 text-sm leading-7 text-red-700">
+              {friendHistoryError}
+            </div>
+          ) : selectedFriendName && !friendHistory.length ? (
+            <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 bg-white/70 px-4 py-6 text-sm leading-7 text-slate-500">
+              No solved problems found for this friend yet.
+            </div>
+          ) : selectedFriendName ? (
+            <div className="mt-6 space-y-6">
+              {Array.from(
+                friendHistory.reduce((groups, item) => {
+                  const key = item.solvedDate || "Unknown date";
+                  if (!groups.has(key)) groups.set(key, []);
+                  groups.get(key)?.push(item);
+                  return groups;
+                }, new Map<string, FriendHistoryProblem[]>()),
+              ).map(([date, entries]) => (
+                <div
+                  key={date}
+                  className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-slate-800">
+                      {new Date(date).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </p>
+                    <span className="text-xs text-slate-500">
+                      {entries.length} problem{entries.length === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    {entries.map((item) => (
+                      <div
+                        key={`${date}-${item.problemSlug ?? "noslug"}-${item.createdAt}`}
+                        className="rounded-2xl bg-white p-4 shadow-sm"
+                      >
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            {item.problemSlug ? (
+                              <a
+                                href={`https://leetcode.com/problems/${item.problemSlug}/`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-sm font-semibold text-sky-700 underline decoration-sky-300 underline-offset-2 hover:text-sky-600"
+                              >
+                                {item.problemTitle}
+                              </a>
+                            ) : (
+                              <p className="text-sm font-semibold text-slate-900">
+                                {item.problemTitle}
+                              </p>
+                            )}
+                            <p className="mt-1 text-xs text-slate-500">
+                              Solved at{" "}
+                              {new Date(item.createdAt).toLocaleTimeString(
+                                "en-US",
+                                {
+                                  hour: "numeric",
+                                  minute: "2-digit",
+                                },
+                              )}
+                            </p>
+                          </div>
+                          <DifficultyBadge
+                            difficulty={item.problemDifficulty}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 bg-white/70 px-4 py-6 text-sm leading-7 text-slate-500">
+              Click a name above to load their solved problem history.
+            </div>
+          )}
         </section>
 
         <section className="surface-panel rounded-[2rem] p-5 sm:p-6">
