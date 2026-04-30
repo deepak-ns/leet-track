@@ -186,13 +186,15 @@ const accentStyles = {
   green: {
     bar: "from-emerald-400 to-teal-600",
     num: "text-emerald-700 dark:text-emerald-400",
-    badge: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
+    badge:
+      "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
     glow: "shadow-emerald-500/10",
   },
   amber: {
     bar: "from-amber-300 to-orange-500",
     num: "text-amber-700 dark:text-amber-400",
-    badge: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
+    badge:
+      "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
     glow: "shadow-amber-500/10",
   },
   rose: {
@@ -204,7 +206,8 @@ const accentStyles = {
   violet: {
     bar: "from-violet-400 to-indigo-600",
     num: "text-violet-700 dark:text-violet-400",
-    badge: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400",
+    badge:
+      "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400",
     glow: "shadow-violet-500/10",
   },
 };
@@ -282,6 +285,9 @@ export default function DashboardPage() {
   const [userHistoryLoading, setUserHistoryLoading] = useState(false);
   const [userHistoryError, setUserHistoryError] = useState<string | null>(null);
   const [showingUserHistory, setShowingUserHistory] = useState(false);
+  const [autocompleteTimeout, setAutocompleteTimeout] =
+    useState<NodeJS.Timeout | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const router = useRouter();
 
@@ -531,9 +537,7 @@ export default function DashboardPage() {
       setUserHistory(history);
     } catch (error) {
       setUserHistoryError(
-        error instanceof Error
-          ? error.message
-          : "Unable to load your history.",
+        error instanceof Error ? error.message : "Unable to load your history.",
       );
     } finally {
       setUserHistoryLoading(false);
@@ -717,6 +721,79 @@ export default function DashboardPage() {
     }
   }
 
+  const handleSearchInputChange = (value: string) => {
+    setSearchTerm(value);
+
+    // Clear previous timeout
+    if (autocompleteTimeout) {
+      clearTimeout(autocompleteTimeout);
+    }
+
+    if (value.trim().length === 0) {
+      setSearchResults([]);
+      setShowSuggestions(false);
+      setFriendError(null);
+      return;
+    }
+
+    // Set new debounced search (500ms delay)
+    const timeout = setTimeout(async () => {
+      setSearchLoading(true);
+      setFriendError(null);
+      setFriendMessage(null);
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, name, leetcode_username")
+          .or(`name.ilike.%${value}%,leetcode_username.ilike.%${value}%`)
+          .limit(10);
+        if (error) throw error;
+        let results = (data ?? []) as FriendSearchResult[];
+        if (!results.length) {
+          const { data: dailyStatUsers, error: dailyStatsError } =
+            await supabase
+              .from("daily_stats")
+              .select("user_id, leetcode_username")
+              .ilike("leetcode_username", `%${value}%`)
+              .limit(10);
+          if (dailyStatsError) throw dailyStatsError;
+          const fallbackResults: FriendSearchResult[] = (dailyStatUsers ?? [])
+            .map((row): FriendSearchResult | null => {
+              const record = row as {
+                user_id?: string;
+                leetcode_username?: string | null;
+              };
+              if (!record.user_id) return null;
+              return {
+                id: record.user_id,
+                name: null,
+                leetcode_username: record.leetcode_username ?? null,
+              };
+            })
+            .filter((item): item is FriendSearchResult => item !== null);
+          const uniqueById = new Map<string, FriendSearchResult>();
+          fallbackResults.forEach((item) => uniqueById.set(item.id, item));
+          results = Array.from(uniqueById.values());
+        }
+        const filtered = currentUserId
+          ? results.filter((item) => item.id !== currentUserId)
+          : results;
+        setSearchResults(filtered);
+        setShowSuggestions(filtered.length > 0);
+      } catch (error) {
+        setFriendError(
+          error instanceof Error ? error.message : "Failed to search users.",
+        );
+        setSearchResults([]);
+        setShowSuggestions(false);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 500);
+
+    setAutocompleteTimeout(timeout);
+  };
+
   async function handleAddFriend(friendUserId: string) {
     if (!currentUserId) {
       setFriendError("You must be logged in to add friends.");
@@ -867,7 +944,9 @@ export default function DashboardPage() {
         {errorMessage && (
           <div className="flex items-start gap-3 rounded-[1.5rem] border border-red-100 bg-red-50 dark:border-red-900/50 dark:bg-red-900/40 px-4 py-3.5">
             <span className="mt-0.5 text-red-500 dark:text-red-400">!</span>
-            <p className="text-sm leading-6 text-red-700 dark:text-red-400">{errorMessage}</p>
+            <p className="text-sm leading-6 text-red-700 dark:text-red-400">
+              {errorMessage}
+            </p>
           </div>
         )}
 
@@ -938,6 +1017,84 @@ export default function DashboardPage() {
               </ul>
             )}
           </div>
+        </section>
+        <section className="surface-panel rounded-[2rem] p-5 sm:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                Add Friend
+              </p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-slate-100">
+                Search by name or handle
+              </h2>
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <div className="relative w-full">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => handleSearchInputChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleFriendSearch();
+                    setShowSuggestions(false);
+                  }
+                }}
+                onFocus={() =>
+                  searchResults.length > 0 && setShowSuggestions(true)
+                }
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                placeholder="Jane or leetcode_handle"
+                className="field-input w-full rounded-2xl px-4 py-3 text-sm"
+              />
+
+              {showSuggestions && searchResults.length > 0 && (
+                <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
+                  {searchResults.map((user) => (
+                    <button
+                      key={user.id}
+                      type="button"
+                      onClick={() => {
+                        handleAddFriend(user.id);
+                        setShowSuggestions(false);
+                      }}
+                      className="w-full border-b border-slate-100 dark:border-slate-700 px-4 py-3 text-left transition hover:bg-sky-50 dark:hover:bg-sky-900/40 last:border-b-0"
+                    >
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        {user.name || "Unnamed user"}
+                      </p>
+                      <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                        {user.leetcode_username
+                          ? `@${user.leetcode_username}`
+                          : "No LeetCode username"}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={handleFriendSearch}
+              disabled={searchLoading}
+              className="gradient-button rounded-2xl px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {searchLoading ? "Searching..." : "Search"}
+            </button>
+          </div>
+
+          {friendError && (
+            <p className="mt-4 rounded-2xl border border-red-100 dark:border-red-900/50 bg-red-50 dark:bg-red-900/40 px-3 py-3 text-sm text-red-600 dark:text-red-400">
+              {friendError}
+            </p>
+          )}
+          {friendMessage && (
+            <p className="mt-4 rounded-2xl border border-emerald-100 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-900/40 px-3 py-3 text-sm text-emerald-700 dark:text-emerald-400">
+              {friendMessage}
+            </p>
+          )}
         </section>
         <section className="surface-panel rounded-[2rem] p-5 sm:p-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -1187,7 +1344,8 @@ export default function DashboardPage() {
               )}
               {(selectedFriendName || showingUserHistory) && (
                 <span className="rounded-full bg-slate-100 dark:bg-slate-900 px-3 py-1 text-xs font-semibold text-slate-700 dark:text-slate-400">
-                  {(showingUserHistory ? userHistory : friendHistory).length} problems
+                  {(showingUserHistory ? userHistory : friendHistory).length}{" "}
+                  problems
                 </span>
               )}
             </div>
@@ -1196,7 +1354,9 @@ export default function DashboardPage() {
           {friendHistoryLoading || userHistoryLoading ? (
             <div className="mt-6 flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 dark:border-slate-700 border-t-sky-500" />
-              {showingUserHistory ? "Loading your history..." : "Loading friend history..."}
+              {showingUserHistory
+                ? "Loading your history..."
+                : "Loading friend history..."}
             </div>
           ) : friendHistoryError ? (
             <div className="mt-6 rounded-[1.5rem] border border-red-100 dark:border-red-900/50 bg-red-50 dark:bg-red-900/40 px-4 py-6 text-sm leading-7 text-red-700 dark:text-red-400">
@@ -1212,17 +1372,21 @@ export default function DashboardPage() {
             </div>
           ) : showingUserHistory && !userHistory.length ? (
             <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 dark:border-slate-600 bg-white/70 dark:bg-slate-800/50 px-4 py-6 text-sm leading-7 text-slate-500 dark:text-slate-400">
-              No solved problems found in your history yet. Keep solving problems to build your history!
+              No solved problems found in your history yet. Keep solving
+              problems to build your history!
             </div>
           ) : selectedFriendName || showingUserHistory ? (
             <div className="mt-6 space-y-6">
               {Array.from(
-                (showingUserHistory ? userHistory : friendHistory).reduce((groups, item) => {
-                  const key = item.solvedDate || "Unknown date";
-                  if (!groups.has(key)) groups.set(key, []);
-                  groups.get(key)?.push(item);
-                  return groups;
-                }, new Map<string, FriendHistoryProblem[]>()),
+                (showingUserHistory ? userHistory : friendHistory).reduce(
+                  (groups, item) => {
+                    const key = item.solvedDate || "Unknown date";
+                    if (!groups.has(key)) groups.set(key, []);
+                    groups.get(key)?.push(item);
+                    return groups;
+                  },
+                  new Map<string, FriendHistoryProblem[]>(),
+                ),
               ).map(([date, entries]) => (
                 <div
                   key={date}
@@ -1285,80 +1449,9 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 dark:border-slate-600 bg-white/70 dark:bg-slate-800/50 px-4 py-6 text-sm leading-7 text-slate-500 dark:text-slate-400">
-              Click a friend&apos;s name in the Friends section above to view their history, or click &quot;View My History&quot; to see your own solved problems.
-            </div>
-          )}
-        </section>
-
-        <section className="surface-panel rounded-[2rem] p-5 sm:p-6">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                Add Friend
-              </p>
-              <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-slate-100">
-                Search by name or handle
-              </h2>
-            </div>
-          </div>
-
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleFriendSearch()}
-              placeholder="Jane or leetcode_handle"
-              className="field-input w-full rounded-2xl px-4 py-3 text-sm"
-            />
-            <button
-              type="button"
-              onClick={handleFriendSearch}
-              disabled={searchLoading}
-              className="gradient-button rounded-2xl px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {searchLoading ? "Searching..." : "Search"}
-            </button>
-          </div>
-
-          {friendError && (
-            <p className="mt-4 rounded-2xl border border-red-100 dark:border-red-900/50 bg-red-50 dark:bg-red-900/40 px-3 py-3 text-sm text-red-600 dark:text-red-400">
-              {friendError}
-            </p>
-          )}
-          {friendMessage && (
-            <p className="mt-4 rounded-2xl border border-emerald-100 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-900/40 px-3 py-3 text-sm text-emerald-700 dark:text-emerald-400">
-              {friendMessage}
-            </p>
-          )}
-
-          {searchResults.length > 0 && (
-            <div className="mt-5 space-y-3">
-              {searchResults.map((user) => (
-                <div
-                  key={user.id}
-                  className="flex flex-col gap-3 rounded-[1.4rem] border border-white/70 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                      {user.name || "Unnamed user"}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      {user.leetcode_username
-                        ? `@${user.leetcode_username}`
-                        : "No LeetCode username"}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleAddFriend(user.id)}
-                    disabled={addingFriendId === user.id}
-                    className="rounded-2xl border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-900/40 px-4 py-2 text-sm font-semibold text-sky-700 dark:text-sky-400 transition hover:border-sky-300 dark:hover:border-sky-700 hover:bg-sky-100 dark:hover:bg-sky-900/60 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {addingFriendId === user.id ? "Adding..." : "Add Friend"}
-                  </button>
-                </div>
-              ))}
+              Click a friend&apos;s name in the Friends section above to view
+              their history, or click &quot;View My History&quot; to see your
+              own solved problems.
             </div>
           )}
         </section>
