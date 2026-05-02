@@ -52,6 +52,7 @@ type FriendStatsRow = {
     difficulty: "Easy" | "Medium" | "Hard" | null;
   }[];
   activeFraction: string;
+  leetcodeUsername: string | null;
 };
 
 type FriendHistoryProblem = {
@@ -122,8 +123,8 @@ function getProblemLinks(
     : [];
   const difficulties = Array.isArray(difficultiesValue)
     ? difficultiesValue.map((v) =>
-        typeof v === "string" ? v.trim().toLowerCase() : "",
-      )
+      typeof v === "string" ? v.trim().toLowerCase() : "",
+    )
     : [];
 
   return titles.map((title, index) => {
@@ -354,12 +355,12 @@ export default function DashboardPage() {
           const fallbackStat = dailyStatsById.get(friendId);
           const usernameFromProfile =
             typeof profile?.leetcode_username === "string" &&
-            profile.leetcode_username.trim()
+              profile.leetcode_username.trim()
               ? profile.leetcode_username.trim()
               : null;
           const usernameFromDailyStats =
             typeof fallbackStat?.leetcode_username === "string" &&
-            fallbackStat.leetcode_username.trim()
+              fallbackStat.leetcode_username.trim()
               ? fallbackStat.leetcode_username.trim()
               : null;
           const username = usernameFromProfile ?? usernameFromDailyStats;
@@ -399,6 +400,20 @@ export default function DashboardPage() {
 
       const rows: FriendStatsRow[] = friendIds.map((friendId) => {
         const stat = statsByUserId.get(friendId) ?? null;
+        const profile = profilesById.get(friendId);
+        const fallbackStat = dailyStatsById.get(friendId);
+        const usernameFromProfile =
+          typeof profile?.leetcode_username === "string" &&
+            profile.leetcode_username.trim()
+            ? profile.leetcode_username.trim()
+            : null;
+        const usernameFromDailyStats =
+          typeof fallbackStat?.leetcode_username === "string" &&
+            fallbackStat.leetcode_username.trim()
+            ? fallbackStat.leetcode_username.trim()
+            : null;
+        const leetcodeUsername = usernameFromProfile ?? usernameFromDailyStats;
+
         return {
           id: friendId,
           name:
@@ -415,9 +430,10 @@ export default function DashboardPage() {
           ),
           activeFraction:
             typeof stat?.active_fraction === "string" &&
-            stat.active_fraction.trim()
+              stat.active_fraction.trim()
               ? stat.active_fraction.trim()
               : "0/1",
+          leetcodeUsername,
         };
       });
 
@@ -435,7 +451,10 @@ export default function DashboardPage() {
     friendId: string,
     friendName: string | null,
   ) {
-    if (selectedFriendId === friendId) return;
+    if (selectedFriendId === friendId) {
+      document.getElementById("history-section")?.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
     setSelectedFriendId(friendId);
     setSelectedFriendName(friendName);
     setFriendHistory([]);
@@ -469,7 +488,7 @@ export default function DashboardPage() {
             problemTitle: record.problem_title ?? "Untitled problem",
             problemSlug:
               typeof record.problem_slug === "string" &&
-              record.problem_slug.trim()
+                record.problem_slug.trim()
                 ? record.problem_slug.trim()
                 : null,
             problemDifficulty: normalizeDifficulty(record.problem_difficulty),
@@ -478,6 +497,9 @@ export default function DashboardPage() {
         .filter((item) => item.problemTitle.length > 0);
 
       setFriendHistory(history);
+      setTimeout(() => {
+        document.getElementById("history-section")?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
     } catch (error) {
       setFriendHistoryError(
         error instanceof Error
@@ -491,7 +513,10 @@ export default function DashboardPage() {
 
   async function loadUserHistory() {
     if (!currentUserId) return;
-    if (showingUserHistory) return;
+    if (showingUserHistory) {
+      document.getElementById("history-section")?.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
 
     setShowingUserHistory(true);
     setSelectedFriendId(null);
@@ -526,7 +551,7 @@ export default function DashboardPage() {
             problemTitle: record.problem_title ?? "Untitled problem",
             problemSlug:
               typeof record.problem_slug === "string" &&
-              record.problem_slug.trim()
+                record.problem_slug.trim()
                 ? record.problem_slug.trim()
                 : null,
             problemDifficulty: normalizeDifficulty(record.problem_difficulty),
@@ -535,6 +560,9 @@ export default function DashboardPage() {
         .filter((item) => item.problemTitle.length > 0);
 
       setUserHistory(history);
+      setTimeout(() => {
+        document.getElementById("history-section")?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
     } catch (error) {
       setUserHistoryError(
         error instanceof Error ? error.message : "Unable to load your history.",
@@ -583,7 +611,7 @@ export default function DashboardPage() {
           dailyTarget: Math.max(1, toNumber(row?.daily_target) ?? 1),
           activeFraction:
             typeof row?.active_fraction === "string" &&
-            row.active_fraction.trim()
+              row.active_fraction.trim()
               ? row.active_fraction.trim()
               : "0/1",
           todaySolvedProblems: getProblemLinks(
@@ -654,9 +682,8 @@ export default function DashboardPage() {
   const focusSummary =
     stats.todaySolved >= stats.dailyTarget
       ? "You have already hit today's target."
-      : `${Math.max(stats.dailyTarget - stats.todaySolved, 0)} more problem${
-          Math.max(stats.dailyTarget - stats.todaySolved, 0) === 1 ? "" : "s"
-        } to reach today's target.`;
+      : `${Math.max(stats.dailyTarget - stats.todaySolved, 0)} more problem${Math.max(stats.dailyTarget - stats.todaySolved, 0) === 1 ? "" : "s"
+      } to reach today's target.`;
 
   async function handleFriendSearch() {
     const query = searchTerm.trim();
@@ -1120,6 +1147,9 @@ export default function DashboardPage() {
 
           {!friendsStatsLoading && friendsStats.length > 0 && (
             <>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                Click on a name to view their history of problems solved.
+              </p>
               <div className="mt-6 hidden overflow-x-auto rounded-[1.5rem] border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 xl:block">
                 <table className="min-w-full text-left text-sm">
                   <thead>
@@ -1129,6 +1159,7 @@ export default function DashboardPage() {
                       <th className="px-4 py-3">Since signup</th>
                       <th className="px-4 py-3">Problems</th>
                       <th className="px-4 py-3">Active days</th>
+                      <th className="px-4 py-3">Profile</th>
                       <th className="px-4 py-3">Actions</th>
                     </tr>
                   </thead>
@@ -1136,11 +1167,10 @@ export default function DashboardPage() {
                     {friendsStats.map((friend) => (
                       <tr
                         key={friend.id}
-                        className={`text-slate-800 dark:text-slate-300 transition ${
-                          selectedFriendId === friend.id
-                            ? "bg-slate-100/80 dark:bg-slate-700/80"
-                            : "hover:bg-slate-50/80 dark:hover:bg-slate-700/50"
-                        }`}
+                        className={`text-slate-800 dark:text-slate-300 transition ${selectedFriendId === friend.id
+                          ? "bg-slate-100/80 dark:bg-slate-700/80"
+                          : "hover:bg-slate-50/80 dark:hover:bg-slate-700/50"
+                          }`}
                       >
                         <td className="px-4 py-4 font-medium">
                           <button
@@ -1148,18 +1178,18 @@ export default function DashboardPage() {
                             onClick={() =>
                               loadFriendHistory(friend.id, friend.name)
                             }
-                            className="text-left text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-sky-700 dark:hover:text-sky-400"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-base font-semibold text-slate-900 dark:text-slate-100 shadow-sm transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 dark:hover:border-sky-700 dark:hover:bg-sky-900/40 dark:hover:text-sky-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
                           >
                             {friend.name}
                           </button>
                         </td>
+
                         <td className="px-4 py-4">
                           <span
-                            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-                              friend.todaySolved > 0
-                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
-                                : "bg-slate-100 text-slate-500 dark:bg-slate-900 dark:text-slate-400"
-                            }`}
+                            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${friend.todaySolved > 0
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
+                              : "bg-slate-100 text-slate-500 dark:bg-slate-900 dark:text-slate-400"
+                              }`}
                           >
                             {friend.todaySolved}
                           </span>
@@ -1202,6 +1232,20 @@ export default function DashboardPage() {
                           </span>
                         </td>
                         <td className="px-4 py-4">
+                          {friend.leetcodeUsername ? (
+                            <a
+                              href={`https://leetcode.com/u/${friend.leetcodeUsername}/`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-sm font-medium text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300 underline decoration-sky-300 dark:decoration-sky-700 underline-offset-2"
+                            >
+                              @{friend.leetcodeUsername}
+                            </a>
+                          ) : (
+                            <span className="text-xs text-slate-400">N/A</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-4">
                           <button
                             type="button"
                             onClick={() => handleRemoveFriend(friend.id)}
@@ -1223,11 +1267,10 @@ export default function DashboardPage() {
                 {friendsStats.map((friend) => (
                   <article
                     key={friend.id}
-                    className={`rounded-[1.5rem] border border-white/70 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 p-4 shadow-sm ${
-                      selectedFriendId === friend.id
-                        ? "border-sky-300 dark:border-sky-700 bg-sky-50/40 dark:bg-sky-900/20"
-                        : ""
-                    }`}
+                    className={`rounded-[1.5rem] border border-white/70 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 p-4 shadow-sm ${selectedFriendId === friend.id
+                      ? "border-sky-300 dark:border-sky-700 bg-sky-50/40 dark:bg-sky-900/20"
+                      : ""
+                      }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -1236,18 +1279,29 @@ export default function DashboardPage() {
                           onClick={() =>
                             loadFriendHistory(friend.id, friend.name)
                           }
-                          className="text-left text-base font-semibold text-slate-900 dark:text-slate-100 hover:text-sky-700 dark:hover:text-sky-400"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-lg font-semibold text-slate-900 dark:text-slate-100 shadow-sm transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 dark:hover:border-sky-700 dark:hover:bg-sky-900/40 dark:hover:text-sky-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
                         >
                           {friend.name}
                         </button>
+                        {friend.leetcodeUsername && (
+                          <div className="mt-1">
+                            <a
+                              href={`https://leetcode.com/u/${friend.leetcodeUsername}/`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs font-medium text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300 underline decoration-sky-300 dark:decoration-sky-700 underline-offset-2"
+                            >
+                              @{friend.leetcodeUsername}
+                            </a>
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-                            friend.todaySolved > 0
-                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
-                              : "bg-slate-100 text-slate-500 dark:bg-slate-900 dark:text-slate-400"
-                          }`}
+                          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${friend.todaySolved > 0
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
+                            : "bg-slate-100 text-slate-500 dark:bg-slate-900 dark:text-slate-400"
+                            }`}
                         >
                           {friend.todaySolved} today
                         </span>
@@ -1321,7 +1375,7 @@ export default function DashboardPage() {
           )}
         </section>
 
-        <section className="surface-panel rounded-[2rem] p-6 sm:p-8">
+        <section id="history-section" className="surface-panel rounded-[2rem] p-6 sm:p-8">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-slate-100">
