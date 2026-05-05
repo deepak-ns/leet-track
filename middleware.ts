@@ -20,7 +20,7 @@ export function middleware(request: NextRequest) {
 
   if (pathname === "/" || pathname === "/login" || pathname === "/signup") {
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/dashboard";
+    redirectUrl.pathname = "/home";
     return NextResponse.redirect(redirectUrl);
   }
 

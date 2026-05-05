@@ -24,11 +24,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-// Suppress Auth API error logs for non-critical errors
 const originalErrorLog = console.error;
 console.error = function (...args: unknown[]) {
   const errorMessage = String(args[0]);
-  // Suppress the refresh token not found error as it's expected when not logged in
   if (
     errorMessage?.includes("Invalid Refresh Token") ||
     errorMessage?.includes("Refresh Token Not Found")

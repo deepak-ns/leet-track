@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { syncUserStats } from "@/lib/stats-sync";
-import { supabase } from "@/lib/supabase";
+import { syncProfileFromUserMetadata } from "@/features/auth/services/profile-sync.service";
+import { syncUserStats } from "@/features/dashboard/services/leetcode-sync.service";
+import { supabase } from "@/shared/lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,27 +31,12 @@ export default function LoginPage() {
 
     const user = data.user;
     if (user) {
-      const metadata = (user.user_metadata ?? {}) as Record<string, unknown>;
-      const dailyTarget =
-        typeof metadata.daily_target === "number" && Number.isFinite(metadata.daily_target)
-          ? Math.max(1, Math.trunc(metadata.daily_target))
-          : typeof metadata.daily_target === "string"
-            ? Math.max(1, Number.parseInt(metadata.daily_target, 10) || 1)
-            : 1;
-      const { error: profileError } = await supabase.from("profiles").upsert(
-        {
-          id: user.id,
-          name: typeof metadata.name === "string" ? metadata.name : null,
-          leetcode_username:
-            typeof metadata.leetcode_username === "string"
-              ? metadata.leetcode_username
-              : null,
-          daily_target: dailyTarget,
-        },
-        { onConflict: "id" },
-      );
-      if (profileError) {
-        setErrorMessage(`Logged in, but profile sync failed: ${profileError.message}`);
+      try {
+        await syncProfileFromUserMetadata(user);
+      } catch (profileError) {
+        setErrorMessage(
+          `Logged in, but profile sync failed: ${profileError instanceof Error ? profileError.message : "Unknown error."}`,
+        );
         setLoading(false);
         return;
       }
@@ -69,7 +55,7 @@ export default function LoginPage() {
     }
 
     setSuccessMessage("Logged in successfully. Redirecting...");
-    router.push("/dashboard");
+    router.push("/home");
     setLoading(false);
   }
 

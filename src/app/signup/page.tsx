@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { checkLeetCodeUserExists } from "@/lib/leetcode";
+import { syncProfile } from "@/features/auth/services/profile-sync.service";
+import { checkLeetCodeUserExists } from "@/features/leetcode/service";
+import { supabase } from "@/shared/lib/supabase/client";
 
 type SignupFormState = {
   name: string;
@@ -71,22 +72,21 @@ export default function SignupPage() {
     const userId = data.user?.id;
     const hasSession = Boolean(data.session);
     if (userId && hasSession) {
-      const { error: profileError } = await supabase.from("profiles").upsert(
-        {
+      try {
+        await syncProfile({
           id: userId,
           name: form.name,
-          leetcode_username: form.leetcodeUsername,
-          daily_target: target,
-        },
-        { onConflict: "id" },
-      );
-      if (profileError) {
+          leetcodeUsername: form.leetcodeUsername,
+          dailyTarget: target,
+        });
+      } catch (profileError) {
         const blocked =
-          profileError.message.toLowerCase().includes("row-level security") ||
-          profileError.message.toLowerCase().includes("permission denied");
+          profileError instanceof Error &&
+          (profileError.message.toLowerCase().includes("row-level security") ||
+            profileError.message.toLowerCase().includes("permission denied"));
         if (!blocked) {
           setErrorMessage(
-            `Account created, but profile setup failed: ${profileError.message}`,
+            `Account created, but profile setup failed: ${profileError instanceof Error ? profileError.message : "Unknown error."}`,
           );
           setLoading(false);
           return;

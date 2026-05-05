@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/shared/lib/supabase/client";
 
 export default function Home() {
   const router = useRouter();
@@ -12,7 +12,7 @@ export default function Home() {
     async function checkSession() {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
-        router.replace("/dashboard");
+        router.replace("/home");
       }
     }
 
