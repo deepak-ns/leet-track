@@ -13,6 +13,7 @@ import {
   getSolvedTodayCount,
   getSolvedTodayProblemEntries,
   getSolvedTodayProblems,
+  hydrateMissingProblemLinkDifficulties,
   getTotalSolved,
   hydrateProblemDifficulties,
 } from "@/features/leetcode/service";
@@ -107,7 +108,13 @@ export async function syncUserStats(
 
   const dashboardRow = await getUserDashboardStats(user.id);
   if (dashboardRow) {
-    return mapDashboardRowToViewModel(dashboardRow, user);
+    const viewModel = mapDashboardRowToViewModel(dashboardRow, user);
+    return {
+      ...viewModel,
+      todaySolvedProblems: await hydrateMissingProblemLinkDifficulties(
+        viewModel.todaySolvedProblems,
+      ),
+    };
   }
 
   const submissionsPayload = await getAcceptedSubmissions(leetcodeUsername);

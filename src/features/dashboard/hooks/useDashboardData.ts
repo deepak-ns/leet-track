@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import type { DashboardStatsViewModel } from "@/shared/types/domain";
 import { getCurrentUser } from "@/features/auth/services/session.service";
-import { getUserDashboardStats } from "@/features/dashboard/repositories/dashboard.repository";
-import { mapDashboardRowToViewModel } from "@/features/dashboard/services/dashboard.mapper";
 import { syncUserStats } from "@/features/dashboard/services/leetcode-sync.service";
 
 const emptyStats: DashboardStatsViewModel = {
@@ -45,10 +43,7 @@ export function useDashboardData(
 
         const todayDate = new Date().toISOString().slice(0, 10);
         await loadFriends(user.id, todayDate);
-        await syncUserStats(user);
-
-        const row = await getUserDashboardStats(user.id);
-        setStats(mapDashboardRowToViewModel(row, user));
+        setStats(await syncUserStats(user));
       } catch (error) {
         setErrorMessage(
           error instanceof Error
@@ -114,4 +109,3 @@ export function useDashboardData(
     currentUser,
   };
 }
-

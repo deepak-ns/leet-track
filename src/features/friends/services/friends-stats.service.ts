@@ -11,6 +11,7 @@ import {
   mapFriendStatsToViewModel,
 } from "@/features/dashboard/services/dashboard.mapper";
 import { syncLeetcodeStatsForUserId } from "@/features/dashboard/services/leetcode-sync.service";
+import { hydrateMissingProblemLinkDifficulties } from "@/features/leetcode/service";
 import {
   getFriendIdsForUser,
   getFriendProfiles,
@@ -96,13 +97,20 @@ export async function loadFriendsStats(
 
   return {
     friendIds,
-    rows: friendIds.map((friendId) =>
-      mapFriendStatsToViewModel({
+    rows: await Promise.all(friendIds.map(async (friendId) => {
+      const viewModel = mapFriendStatsToViewModel({
         friendId,
         stat: statsByUserId.get(friendId) ?? null,
         profile: profilesById.get(friendId),
         fallbackStat: dailyStatsById.get(friendId),
-      }),
-    ),
+      });
+
+      return {
+        ...viewModel,
+        todayProblems: await hydrateMissingProblemLinkDifficulties(
+          viewModel.todayProblems,
+        ),
+      };
+    })),
   };
 }
