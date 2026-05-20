@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { createServiceClient } from "@/shared/lib/supabase/service-client";
+
+// Allow up to 60s execution on Vercel (default is 10s on Hobby).
+// Increase to 300 on Pro plan if needed.
+export const maxDuration = 60;
 
 const LEETCODE_BASE = "https://alfa-leetcode-api.onrender.com";
 const INDIA_TZ = "Asia/Kolkata";
@@ -184,28 +189,27 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = createServiceClient();
+  // Schedule the actual sync work to run AFTER the response is sent.
+  // This way cronjob.org gets an instant 200 OK and never times out,
+  // while Vercel keeps the function alive to complete the background work.
+  after(async () => {
+    const supabase = createServiceClient();
 
-  // Fetch all registered users who have a LeetCode username
-  const { data: profiles, error } = await supabase
-    .from("profiles")
-    .select("id, leetcode_username, daily_target")
-    .not("leetcode_username", "is", null)
-    .neq("leetcode_username", "");
+    // Fetch all registered users who have a LeetCode username
+    const { data: profiles, error } = await supabase
+      .from("profiles")
+      .select("id, leetcode_username, daily_target")
+      .not("leetcode_username", "is", null)
+      .neq("leetcode_username", "");
 
-  if (error) {
-    console.error("[cron] Failed to fetch profiles:", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+    if (error) {
+      console.error("[cron] Failed to fetch profiles:", error.message);
+      return;
+    }
 
-  const results: SyncResult[] = [];
-
-  // Process users in batches of 3 to avoid hammering the LeetCode API
-  const BATCH_SIZE = 3;
-  for (let i = 0; i < profiles.length; i += BATCH_SIZE) {
-    const batch = profiles.slice(i, i + BATCH_SIZE);
-    const batchResults = await Promise.all(
-      batch.map((p) =>
+    // Process all users concurrently to minimize total wall-clock time
+    const results: SyncResult[] = await Promise.all(
+      profiles.map((p) =>
         syncUser(
           supabase,
           p.id,
@@ -214,15 +218,19 @@ export async function GET(req: NextRequest) {
         ),
       ),
     );
-    results.push(...batchResults);
-  }
 
-  const summary = {
-    totalUsers: profiles.length,
-    runAt: new Date().toISOString(),
-    results,
-  };
+    const summary = {
+      totalUsers: profiles.length,
+      runAt: new Date().toISOString(),
+      results,
+    };
 
-  console.log("[cron/sync-all] Run complete:", JSON.stringify(summary));
-  return NextResponse.json(summary);
+    console.log("[cron/sync-all] Run complete:", JSON.stringify(summary));
+  });
+
+  // Respond immediately so cronjob.org sees a fast 200 OK
+  return NextResponse.json(
+    { status: "accepted", message: "Sync started in background" },
+    { status: 200 },
+  );
 }
