@@ -1,13 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
-import { after } from "next/server";
-import { createServiceClient } from "@/shared/lib/supabase/service-client";
-
-// Allow up to 60s execution on Vercel (default is 10s on Hobby).
-// Increase to 300 on Pro plan if needed.
-export const maxDuration = 60;
+import { createClient } from "@supabase/supabase-js";
 
 const LEETCODE_BASE = process.env.LEETCODE_BASE_URL!;
 const INDIA_TZ = "Asia/Kolkata";
+
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+);
 
 function getDateIST(timestampSeconds: number): string {
   return new Intl.DateTimeFormat("en-CA", {
@@ -30,7 +29,6 @@ function getTodayIST(): string {
 async function fetchLeetCode<T>(path: string): Promise<T> {
   const res = await fetch(`${LEETCODE_BASE}${path}`, {
     headers: { Accept: "application/json" },
-    cache: "no-store",
   });
   if (!res.ok) {
     throw new Error(`LeetCode API error ${res.status} for path: ${path}`);
@@ -64,7 +62,6 @@ type SyncResult = {
 };
 
 async function syncUser(
-  supabase: ReturnType<typeof createServiceClient>,
   userId: string,
   username: string,
   dailyTarget: number,
@@ -102,8 +99,6 @@ async function syncUser(
         newSubmissions.push({
           ...sub,
           date,
-          // Convert Unix seconds to ISO string so the DB stores the real solve
-          // time instead of defaulting to the moment the cron ran.
           solvedAt: new Date(ts * 1000).toISOString(),
         });
       }
@@ -131,8 +126,7 @@ async function syncUser(
       });
     }
 
-    // 4b. Backfill difficulty for any existing rows where it is NULL.
-    // This handles problems that were inserted when the difficulty API was down.
+    // 4b. Backfill difficulty for any existing rows where it is NULL
     const { data: nullDiffRows } = await supabase
       .from("solved_problems")
       .select("id, problem_slug")
@@ -153,7 +147,7 @@ async function syncUser(
             .eq("id", r.id);
         }
       } catch {
-        // Skip if difficulty fetch fails; it will be retried on the next cron run
+        // Skip if difficulty fetch fails
       }
     }
 
@@ -163,7 +157,7 @@ async function syncUser(
     );
     const totalSolved = profileData.totalSolved ?? 0;
 
-    // 6. Count today's solved problems from our DB (source of truth for solved_today)
+    // 6. Count today's solved problems from our DB
     const todayIST = getTodayIST();
     const { count: solvedToday } = await supabase
       .from("solved_problems")
@@ -171,7 +165,7 @@ async function syncUser(
       .eq("user_id", userId)
       .eq("solved_date", todayIST);
 
-    // 7. Upsert today's daily_stats row (check-then-update-or-insert)
+    // 7. Upsert today's daily_stats row
     const statPayload = {
       user_id: userId,
       stat_date: todayIST,
@@ -201,62 +195,41 @@ async function syncUser(
     return { username, newProblems: newSubmissions.length };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(`[cron] Failed to sync user ${username}:`, message);
+    console.error(`[sync] Failed to sync user ${username}:`, message);
     return { username, newProblems: 0, error: message };
   }
 }
 
-export async function GET(req: NextRequest) {
-  // Verify cron secret to prevent unauthorized calls
-  const authHeader = req.headers.get("authorization");
-  const secret = process.env.CRON_SECRET;
+async function main() {
+  console.log("[sync] Starting...");
 
-  if (!secret || authHeader !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { data: profiles, error } = await supabase
+    .from("profiles")
+    .select("id, leetcode_username, daily_target")
+    .not("leetcode_username", "is", null)
+    .neq("leetcode_username", "");
+
+  if (error) {
+    console.error("[sync] Failed to fetch profiles:", error.message);
+    process.exit(1);
   }
 
-  // Schedule the actual sync work to run AFTER the response is sent.
-  // This way cronjob.org gets an instant 200 OK and never times out,
-  // while Vercel keeps the function alive to complete the background work.
-  after(async () => {
-    const supabase = createServiceClient();
+  console.log(`[sync] Found ${profiles.length} users`);
 
-    // Fetch all registered users who have a LeetCode username
-    const { data: profiles, error } = await supabase
-      .from("profiles")
-      .select("id, leetcode_username, daily_target")
-      .not("leetcode_username", "is", null)
-      .neq("leetcode_username", "");
+  const results: SyncResult[] = await Promise.all(
+    profiles.map((p) =>
+      syncUser(p.id, p.leetcode_username as string, p.daily_target ?? 1),
+    ),
+  );
 
-    if (error) {
-      console.error("[cron] Failed to fetch profiles:", error.message);
-      return;
-    }
-
-    // Process all users concurrently to minimize total wall-clock time
-    const results: SyncResult[] = await Promise.all(
-      profiles.map((p) =>
-        syncUser(
-          supabase,
-          p.id,
-          p.leetcode_username as string,
-          p.daily_target ?? 1,
-        ),
-      ),
-    );
-
-    const summary = {
-      totalUsers: profiles.length,
-      runAt: new Date().toISOString(),
-      results,
-    };
-
-    console.log("[cron/sync-all] Run complete:", JSON.stringify(summary));
-  });
-
-  // Respond immediately so cronjob.org sees a fast 200 OK
-  return NextResponse.json(
-    { status: "accepted", message: "Sync started in background" },
-    { status: 200 },
+  console.log(
+    "[sync] Complete:",
+    JSON.stringify(
+      { totalUsers: profiles.length, runAt: new Date().toISOString(), results },
+      null,
+      2,
+    ),
   );
 }
+
+main();
