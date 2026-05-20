@@ -2,7 +2,7 @@ name: Sync LeetCode Stats
 
 on:
   schedule:
-    - cron: "*/15 * * * *" # every hour, adjust as needed
+    - cron: "7,22,37,52 * * * *"
   workflow_dispatch: # lets you trigger manually from GitHub UI
 
 jobs:
