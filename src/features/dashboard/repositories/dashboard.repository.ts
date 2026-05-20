@@ -35,8 +35,17 @@ export type FriendDashboardData = {
  */
 function daysSinceSignup(createdAt: string | null): number {
   if (!createdAt) return 1;
-  const diffMs = Date.now() - new Date(createdAt).getTime();
-  return Math.max(Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1, 1);
+
+  const signup = new Date(createdAt);
+  const today = new Date();
+
+  // Reset both to local midnight
+  signup.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+
+  const diffMs = today.getTime() - signup.getTime();
+
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
 }
 
 export async function getUserDashboardData(
