@@ -53,6 +53,19 @@ export default function DashboardPage() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="saas-shell min-h-screen flex items-center justify-center bg-slate-950 px-6 text-center text-white">
+        <div className="max-w-xs rounded-[2rem] border border-slate-800 bg-slate-900/95 p-10 shadow-2xl shadow-slate-950/20">
+          <div className="mx-auto flex flex-col items-center gap-3">
+            <div className="h-20 w-20 animate-spin rounded-full border-4 border-slate-700 border-t-sky-500" />
+            <p className="text-sm font-medium text-slate-200">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <DashboardPageShell
       userName={stats.userName}
