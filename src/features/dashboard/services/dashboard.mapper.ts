@@ -1,108 +1,55 @@
-import type { User } from "@supabase/supabase-js";
 import type {
   DashboardStatsViewModel,
   FriendStatsViewModel,
+  ProblemLink,
 } from "@/shared/types/domain";
 import type {
-  FriendDailyStatsRow,
-  FriendProfileRow,
-  UserDashboardStatsRow,
-} from "@/shared/types/database";
-import { normalizePositiveInteger, toNumber } from "@/shared/utils/number";
-import { mapProblemLinks } from "@/shared/utils/problem-links";
+  TodayProblemRow,
+  UserDashboardData,
+  FriendDashboardData,
+} from "@/features/dashboard/repositories/dashboard.repository";
+import { normalizeDifficulty } from "@/shared/utils/difficulty";
+import { toSlugFromTitle } from "@/shared/utils/slug";
 
-function getPreferredUsername(
-  profile: FriendProfileRow | undefined,
-  fallbackStat: FriendDailyStatsRow | undefined,
-): string | null {
-  const fromProfile =
-    typeof profile?.leetcode_username === "string" &&
-    profile.leetcode_username.trim()
-      ? profile.leetcode_username.trim()
-      : null;
-  const fromDailyStats =
-    typeof fallbackStat?.leetcode_username === "string" &&
-    fallbackStat.leetcode_username.trim()
-      ? fallbackStat.leetcode_username.trim()
-      : null;
-
-  return fromProfile ?? fromDailyStats;
+function mapToProblems(rows: TodayProblemRow[]): ProblemLink[] {
+  return rows.map((row) => ({
+    title: row.problem_title ?? "Unknown",
+    slug:
+      typeof row.problem_slug === "string" && row.problem_slug.trim()
+        ? row.problem_slug.trim()
+        : typeof row.problem_title === "string" && row.problem_title.trim()
+          ? toSlugFromTitle(row.problem_title.trim())
+          : null,
+    difficulty: normalizeDifficulty(row.problem_difficulty),
+  }));
 }
 
-export function mapDashboardRowToViewModel(
-  row: UserDashboardStatsRow | null,
-  user: User,
+export function mapUserDataToViewModel(
+  data: UserDashboardData,
+  userMetaName: string | null,
 ): DashboardStatsViewModel {
   return {
-    totalSolved: toNumber(row?.total_solved) ?? 0,
-    todaySolved: toNumber(row?.solved_today) ?? 0,
-    problemsSolvedSinceSignup: toNumber(row?.problems_solved_since_signup) ?? 0,
-    dailyTarget: normalizePositiveInteger(row?.daily_target, 1),
-    activeFraction:
-      typeof row?.active_fraction === "string" && row.active_fraction.trim()
-        ? row.active_fraction.trim()
-        : "0/1",
-    todaySolvedProblems: mapProblemLinks(
-      row?.today_problem_titles,
-      row?.today_problem_slugs,
-      row?.today_problem_difficulties,
-    ),
-    userName:
-      typeof row?.name === "string" && row.name.trim()
-        ? row.name.trim()
-        : typeof user.user_metadata?.name === "string"
-          ? user.user_metadata.name
-          : null,
-    leetcodeUsername:
-      typeof user.user_metadata?.leetcode_username === "string"
-        ? user.user_metadata.leetcode_username
-        : null,
+    totalSolved: data.totalSolved,
+    todaySolved: data.solvedToday,
+    problemsSolvedSinceSignup: data.sinceSignupCount,
+    dailyTarget: data.dailyTarget,
+    activeFraction: `${data.activeDays}/${data.totalTrackedDays}`,
+    todaySolvedProblems: mapToProblems(data.todayProblems),
+    userName: data.name ?? userMetaName,
+    leetcodeUsername: data.leetcodeUsername,
   };
 }
 
-export function mapFriendStatsToViewModel(input: {
-  friendId: string;
-  stat: UserDashboardStatsRow | null;
-  profile?: FriendProfileRow;
-  fallbackStat?: FriendDailyStatsRow;
-}): FriendStatsViewModel {
+export function mapFriendDataToViewModel(
+  data: FriendDashboardData,
+): FriendStatsViewModel {
   return {
-    id: input.friendId,
-    name:
-      (typeof input.stat?.name === "string" && input.stat.name.trim()
-        ? input.stat.name.trim()
-        : null) ?? "Friend",
-    todaySolved: toNumber(input.stat?.solved_today) ?? 0,
-    problemsSolvedSinceSignup:
-      toNumber(input.stat?.problems_solved_since_signup) ?? 0,
-    todayProblems: mapProblemLinks(
-      input.stat?.today_problem_titles,
-      input.stat?.today_problem_slugs,
-      input.stat?.today_problem_difficulties,
-    ),
-    activeFraction:
-      typeof input.stat?.active_fraction === "string" &&
-      input.stat.active_fraction.trim()
-        ? input.stat.active_fraction.trim()
-        : "0/1",
-    leetcodeUsername: getPreferredUsername(input.profile, input.fallbackStat),
+    id: data.userId,
+    name: data.name ?? "Friend",
+    todaySolved: data.solvedToday,
+    problemsSolvedSinceSignup: data.sinceSignupCount,
+    todayProblems: mapToProblems(data.todayProblems),
+    activeFraction: `${data.activeDays}/${data.totalTrackedDays}`,
+    leetcodeUsername: data.leetcodeUsername,
   };
 }
-
-export function getFriendTarget(
-  profile?: FriendProfileRow,
-  fallbackStat?: FriendDailyStatsRow,
-): number {
-  return normalizePositiveInteger(
-    profile?.daily_target ?? fallbackStat?.daily_target,
-    1,
-  );
-}
-
-export function getFriendUsername(
-  profile?: FriendProfileRow,
-  fallbackStat?: FriendDailyStatsRow,
-): string | null {
-  return getPreferredUsername(profile, fallbackStat);
-}
-

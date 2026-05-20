@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { getTodayDateKey } from "@/shared/utils/date";
 import { signOut } from "@/features/auth/services/session.service";
 import { DashboardPageShell } from "@/features/dashboard/components/DashboardPageShell";
 import { ErrorBanner } from "@/features/dashboard/components/ErrorBanner";
@@ -32,7 +33,7 @@ export default function DashboardPage() {
       return;
     }
 
-    await loadFriendsStats(currentUserId, new Date().toISOString().slice(0, 10));
+    await loadFriendsStats(currentUserId, getTodayDateKey());
   }
 
   const friendSearch = useFriendSearch({
