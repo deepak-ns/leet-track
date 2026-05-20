@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { FriendSearchResult } from "@/shared/types/domain";
+import { searchFriends } from "@/features/friends/services/friend-search.service";
 import {
   addFriend,
   removeFriend,
-  searchFriends,
-} from "@/features/friends/services/friend-search.service";
+} from "@/features/friends/repositories/friends.repository";
 
 type UseFriendSearchArgs = {
   currentUserId: string | null;
@@ -52,7 +52,7 @@ export function useFriendSearch({
     setFriendMessage(null);
 
     try {
-      const results = await searchFriends(trimmed, currentUserId);
+      const results = await searchFriends(trimmed, currentUserId ?? "");
       setSearchResults(results);
       if (showDropdown) {
         setShowSuggestions(results.length > 0);
@@ -173,4 +173,3 @@ export function useFriendSearch({
     handleRemoveFriend,
   };
 }
-

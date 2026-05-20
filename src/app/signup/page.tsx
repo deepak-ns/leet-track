@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { syncProfile } from "@/features/auth/services/profile-sync.service";
-import { checkLeetCodeUserExists } from "@/features/leetcode/service";
+import { checkLeetCodeUserExists } from "@/features/leetcode/client";
 import { supabase } from "@/shared/lib/supabase/client";
 
 type SignupFormState = {

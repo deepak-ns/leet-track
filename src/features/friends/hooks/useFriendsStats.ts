@@ -2,7 +2,9 @@
 
 import { useCallback, useState } from "react";
 import type { FriendStatsViewModel } from "@/shared/types/domain";
-import { loadFriendsStats } from "@/features/friends/services/friends-stats.service";
+import { getFriendIdsForUser } from "@/features/friends/repositories/friends.repository";
+import { getFriendsDashboardData } from "@/features/dashboard/repositories/dashboard.repository";
+import { mapFriendDataToViewModel } from "@/features/dashboard/services/dashboard.mapper";
 
 export function useFriendsStats() {
   const [friendsStats, setFriendsStats] = useState<FriendStatsViewModel[]>([]);
@@ -13,9 +15,16 @@ export function useFriendsStats() {
   const load = useCallback(async (userId: string, date: string) => {
     setFriendsStatsLoading(true);
     try {
-      const result = await loadFriendsStats(userId, date);
-      setFriendIds(result.friendIds);
-      setFriendsStats(result.rows);
+      const ids = await getFriendIdsForUser(userId);
+      setFriendIds(ids);
+
+      if (!ids.length) {
+        setFriendsStats([]);
+        return;
+      }
+
+      const friendsData = await getFriendsDashboardData(ids, date);
+      setFriendsStats(friendsData.map(mapFriendDataToViewModel));
     } catch (error) {
       setFriendError(
         error instanceof Error ? error.message : "Unable to load friend stats.",
@@ -34,4 +43,3 @@ export function useFriendsStats() {
     loadFriendsStats: load,
   };
 }
-

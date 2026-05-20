@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import type { DashboardStatsViewModel } from "@/shared/types/domain";
 import { getCurrentUser } from "@/features/auth/services/session.service";
-import { syncUserStats } from "@/features/dashboard/services/leetcode-sync.service";
+import { getUserDashboardData } from "@/features/dashboard/repositories/dashboard.repository";
+import { mapUserDataToViewModel } from "@/features/dashboard/services/dashboard.mapper";
+import { getTodayDateKey } from "@/shared/utils/date";
 
 const emptyStats: DashboardStatsViewModel = {
   totalSolved: 0,
@@ -41,9 +43,19 @@ export function useDashboardData(
 
         setCurrentUser(user);
 
-        const todayDate = new Date().toISOString().slice(0, 10);
-        await loadFriends(user.id, todayDate);
-        setStats(await syncUserStats(user));
+        const today = getTodayDateKey();
+        // Load friends and own stats in parallel
+        const [, data] = await Promise.all([
+          loadFriends(user.id, today),
+          getUserDashboardData(user.id, today),
+        ]);
+
+        const userMetaName =
+          typeof user.user_metadata?.name === "string"
+            ? user.user_metadata.name
+            : null;
+
+        setStats(mapUserDataToViewModel(data, userMetaName));
       } catch (error) {
         setErrorMessage(
           error instanceof Error
@@ -56,7 +68,8 @@ export function useDashboardData(
     }
 
     loadDashboard();
-  }, [loadFriends, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const cards = useMemo(
     () => [
@@ -87,7 +100,7 @@ export function useDashboardData(
       {
         label: "Active Days",
         value: stats.activeFraction,
-        subtitle: "Active days / total days",
+        subtitle: "Active days / total tracked days",
         accent: "violet" as const,
       },
     ],

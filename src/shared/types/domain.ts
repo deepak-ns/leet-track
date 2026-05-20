@@ -46,41 +46,9 @@ export type HistoryGroup = {
   entries: SolvedProblemHistoryItem[];
 };
 
-export type NormalizedSubmissionRecord = {
-  timestamp?: number | string;
-  time?: number | string;
-  submittedAt?: number | string;
-  createdAt?: number | string;
-  statusDisplay?: string;
-  status?: string;
-  title?: string;
-  titleSlug?: string;
-  questionTitle?: string;
-  questionSlug?: string;
-  problemTitle?: string;
-  name?: string;
-  difficulty?: string | number;
-  diff?: string | number;
-  level?: string | number;
-};
-
-export type SolvedTodayProblem = {
-  slug: string;
-  title: string;
-  solvedAtMs: number;
-  difficulty: ProblemDifficulty | null;
-};
-
-export type LeetCodeSyncInput = {
-  userId: string;
-  leetcodeUsername: string;
-  dailyTarget: number;
-};
-
 export type ProfileSyncInput = {
   id: string;
   name: string | null;
   leetcodeUsername: string | null;
   dailyTarget: number;
 };
-

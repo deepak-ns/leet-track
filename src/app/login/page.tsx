@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { syncProfileFromUserMetadata } from "@/features/auth/services/profile-sync.service";
-import { syncUserStats } from "@/features/dashboard/services/leetcode-sync.service";
 import { supabase } from "@/shared/lib/supabase/client";
 
 export default function LoginPage() {
@@ -21,7 +20,10 @@ export default function LoginPage() {
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
     if (error) {
       setErrorMessage(error.message);
@@ -36,18 +38,6 @@ export default function LoginPage() {
       } catch (profileError) {
         setErrorMessage(
           `Logged in, but profile sync failed: ${profileError instanceof Error ? profileError.message : "Unknown error."}`,
-        );
-        setLoading(false);
-        return;
-      }
-
-      try {
-        await syncUserStats(user);
-      } catch (syncError) {
-        setErrorMessage(
-          syncError instanceof Error
-            ? `Logged in, but stats sync failed: ${syncError.message}`
-            : "Logged in, but stats sync failed.",
         );
         setLoading(false);
         return;
@@ -69,8 +59,8 @@ export default function LoginPage() {
               Pick up where you left off.
             </h1>
             <p className="mt-4 text-base leading-8 text-slate-600">
-              Review today&apos;s accepted problems, track your daily target, and stay aligned
-              with your goals without digging through clutter.
+              Review today&apos;s accepted problems, track your daily target,
+              and stay aligned with your goals without digging through clutter.
             </p>
           </div>
 
@@ -100,7 +90,9 @@ export default function LoginPage() {
             <span className="inline-flex h-14 w-14 items-center justify-center rounded-3xl bg-slate-950 text-xl font-semibold text-white shadow-lg shadow-slate-900/15">
               LT
             </span>
-            <h1 className="mt-5 text-3xl font-semibold tracking-tight text-slate-950">Sign in</h1>
+            <h1 className="mt-5 text-3xl font-semibold tracking-tight text-slate-950">
+              Sign in
+            </h1>
             <p className="mt-2 text-sm leading-7 text-slate-600">
               Log in to continue tracking your progress.
             </p>
@@ -109,7 +101,10 @@ export default function LoginPage() {
           <div className="surface-panel rounded-[1.5rem] p-5 sm:p-6">
             <form className="space-y-5" onSubmit={handleSubmit}>
               <div>
-                <label htmlFor="email" className="mb-1.5 block text-sm font-semibold text-slate-700">
+                <label
+                  htmlFor="email"
+                  className="mb-1.5 block text-sm font-semibold text-slate-700"
+                >
                   Email
                 </label>
                 <input
@@ -125,7 +120,10 @@ export default function LoginPage() {
 
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <label htmlFor="password" className="block text-sm font-semibold text-slate-700">
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-semibold text-slate-700"
+                  >
                     Password
                   </label>
                 </div>
@@ -149,7 +147,9 @@ export default function LoginPage() {
 
               {successMessage && (
                 <div className="flex items-start gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-3">
-                  <span className="text-sm font-semibold text-emerald-500">OK</span>
+                  <span className="text-sm font-semibold text-emerald-500">
+                    OK
+                  </span>
                   <p className="text-sm text-emerald-700">{successMessage}</p>
                 </div>
               )}
@@ -166,7 +166,10 @@ export default function LoginPage() {
 
           <p className="mt-6 text-center text-sm text-slate-500">
             New here?{" "}
-            <Link href="/signup" className="font-semibold text-sky-700 transition hover:text-sky-600">
+            <Link
+              href="/signup"
+              className="font-semibold text-sky-700 transition hover:text-sky-600"
+            >
               Create an account
             </Link>
           </p>
