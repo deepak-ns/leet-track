@@ -21,4 +21,4 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          LEETCODE_BASE: ${{ secrets.LEETCODE_BASE }}
+          LEETCODE_BASE_URL: ${{ secrets.LEETCODE_BASE_URL }}
