@@ -6,7 +6,7 @@ import { createServiceClient } from "@/shared/lib/supabase/service-client";
 // Increase to 300 on Pro plan if needed.
 export const maxDuration = 60;
 
-const LEETCODE_BASE = "http://localhost:3000";
+const LEETCODE_BASE = "https://alfa-leetcode-api.onrender.com";
 const INDIA_TZ = "Asia/Kolkata";
 
 function getDateIST(timestampSeconds: number): string {
