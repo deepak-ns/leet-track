@@ -6,7 +6,7 @@ import { createServiceClient } from "@/shared/lib/supabase/service-client";
 // Increase to 300 on Pro plan if needed.
 export const maxDuration = 60;
 
-const LEETCODE_BASE = "https://alfa-leetcode-api.onrender.com";
+const LEETCODE_BASE = "http://localhost:3000";
 const INDIA_TZ = "Asia/Kolkata";
 
 function getDateIST(timestampSeconds: number): string {
@@ -129,6 +129,32 @@ async function syncUser(
         problem_difficulty: difficulty,
         created_at: sub.solvedAt,
       });
+    }
+
+    // 4b. Backfill difficulty for any existing rows where it is NULL.
+    // This handles problems that were inserted when the difficulty API was down.
+    const { data: nullDiffRows } = await supabase
+      .from("solved_problems")
+      .select("id, problem_slug")
+      .eq("user_id", userId)
+      .is("problem_difficulty", null)
+      .not("problem_slug", "is", null);
+
+    for (const row of nullDiffRows ?? []) {
+      const r = row as { id: string; problem_slug: string };
+      try {
+        const qData = await fetchLeetCode<QuestionResponse>(
+          `/select?titleSlug=${encodeURIComponent(r.problem_slug)}`,
+        );
+        if (qData.difficulty) {
+          await supabase
+            .from("solved_problems")
+            .update({ problem_difficulty: qData.difficulty })
+            .eq("id", r.id);
+        }
+      } catch {
+        // Skip if difficulty fetch fails; it will be retried on the next cron run
+      }
     }
 
     // 5. Fetch total all-time solved from the LeetCode profile endpoint
