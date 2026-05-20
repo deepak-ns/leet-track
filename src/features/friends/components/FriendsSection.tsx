@@ -43,22 +43,30 @@ export function FriendsSection({
 }) {
   return (
     <>
-      <section className="surface-panel rounded-[2rem] p-5 sm:p-6">
+      {/* Search & Add Friends Section */}
+      <section className="glass-card min-w-0 rounded-[2.5rem] border border-neutral-200/70 p-6 shadow-xl dark:border-neutral-800 sm:p-8">
         <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+          <div className="min-w-0">
+            <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
               Add Friend
             </p>
-            <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-slate-100">
-              Search by name or handle
+            <h2 className="mt-2 text-wrap-balance text-xl font-extrabold tracking-tight text-neutral-950 dark:text-neutral-50">
+              Search by Name or Handle
             </h2>
           </div>
         </div>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <div className="relative w-full">
+            <label htmlFor="friend-search" className="sr-only">
+              Search Friends by Name or LeetCode Handle
+            </label>
             <input
+              id="friend-search"
               type="text"
+              name="friend_search"
+              autoComplete="off"
+              spellCheck={false}
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
               onKeyDown={(e) => {
@@ -69,12 +77,12 @@ export function FriendsSection({
               }}
               onFocus={() => searchResults.length > 0 && onShowSuggestions()}
               onBlur={() => setTimeout(onHideSuggestions, 200)}
-              placeholder="Jane or leetcode_handle"
-              className="field-input w-full rounded-2xl px-4 py-3 text-sm"
+              placeholder="Enter name or LeetCode handle…"
+              className="field-input w-full rounded-2xl px-4 py-3.5 text-sm"
             />
 
             {showSuggestions && searchResults.length > 0 && (
-              <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-64 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
+              <div className="absolute left-0 right-0 top-full z-20 mt-1.5 max-h-64 overflow-y-auto rounded-2xl border border-neutral-200 bg-white/95 shadow-xl backdrop-blur-md dark:border-neutral-800 dark:bg-neutral-950/95">
                 {searchResults.map((user) => (
                   <button
                     key={user.id}
@@ -83,12 +91,12 @@ export function FriendsSection({
                       void onAddFriend(user.id);
                       onHideSuggestions();
                     }}
-                    className="w-full border-b border-slate-100 px-4 py-3 text-left transition last:border-b-0 hover:bg-sky-50 dark:border-slate-700 dark:hover:bg-sky-900/40"
+                    className="w-full border-b border-neutral-100 px-4 py-3 text-left transition-colors duration-200 last:border-b-0 hover:bg-blue-50/70 focus-visible:bg-blue-50/80 focus-visible:outline-none dark:border-neutral-800/70 dark:hover:bg-blue-950/20 dark:focus-visible:bg-blue-950/25"
                   >
-                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    <p className="text-xs font-semibold text-neutral-950 dark:text-neutral-50">
                       {user.name || "Unnamed user"}
                     </p>
-                    <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                    <p className="mt-0.5 font-mono text-[10px] text-neutral-500 dark:text-neutral-400">
                       {user.leetcode_username
                         ? `@${user.leetcode_username}`
                         : "No LeetCode username"}
@@ -102,262 +110,167 @@ export function FriendsSection({
             type="button"
             onClick={() => void onSearch()}
             disabled={searchLoading}
-            className="gradient-button rounded-2xl px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+            className="gradient-button shrink-0 rounded-2xl px-6 py-3.5 text-sm font-semibold text-white transition-opacity duration-200 hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950"
           >
-            {searchLoading ? "Searching..." : "Search"}
+            {searchLoading ? "Searching…" : "Search"}
           </button>
         </div>
 
         {friendError && (
-          <p className="mt-4 rounded-2xl border border-red-100 bg-red-50 px-3 py-3 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-900/40 dark:text-red-400">
+          <p className="mt-4 rounded-2xl border border-red-200/60 bg-red-50 px-4 py-3 text-xs leading-5 text-red-700 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300" aria-live="polite">
             {friendError}
           </p>
         )}
         {friendMessage && (
-          <p className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-3 text-sm text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-900/40 dark:text-emerald-400">
+          <p className="mt-4 rounded-2xl border border-emerald-200/60 bg-emerald-50 px-4 py-3 text-xs leading-5 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300" aria-live="polite">
             {friendMessage}
           </p>
         )}
       </section>
 
-      <section className="surface-panel rounded-[2rem] p-5 sm:p-6">
+      {/* Friends Scoreboard List */}
+      <section className="glass-card min-w-0 rounded-[2.5rem] border border-neutral-200/70 p-6 shadow-xl dark:border-neutral-800 sm:p-8">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xl font-bold uppercase tracking-[0.18em] text-slate-1000 dark:text-slate-100">
-              Friends
+          <div className="min-w-0">
+            <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+              Scoreboard
             </p>
+            <h2 className="mt-2 text-wrap-balance text-xl font-extrabold tracking-tight text-neutral-950 dark:text-neutral-50">
+              Friends Standings
+            </h2>
           </div>
         </div>
 
         {friendsStatsLoading && (
-          <div className="mt-6 flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500 dark:border-slate-700" />
-            Loading...
+          <div className="mt-6 flex items-center gap-3 font-mono text-xs text-neutral-500 dark:text-neutral-400">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-200 border-t-blue-600 dark:border-neutral-800 dark:border-t-blue-300" />
+            Loading scoreboard…
           </div>
         )}
 
         {!friendsStatsLoading && !friendsStats.length && (
-          <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-200 bg-white/70 px-4 py-6 text-sm leading-7 text-slate-500 dark:border-slate-600 dark:bg-slate-800/50 dark:text-slate-400">
-            No friends yet. Add friends above to see their stats here.
+          <div className="mt-6 rounded-2xl border border-dashed border-neutral-200 bg-white/40 px-5 py-8 text-center font-mono text-xs leading-6 text-neutral-500 dark:border-neutral-800 dark:bg-neutral-950/15 dark:text-neutral-400">
+            No friends tracking yet. Search and add friends above to build your scoreboard!
           </div>
         )}
 
         {!friendsStatsLoading && friendsStats.length > 0 && (
           <>
-            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              Click on a name to view their history of problems solved.
+            <p className="mt-2 text-pretty text-xs font-medium text-neutral-600 dark:text-neutral-300">
+              Select a friend to inspect their detailed solved history below.
             </p>
-            <div className="mt-6 hidden overflow-x-auto rounded-[1.5rem] border border-slate-100 bg-white dark:border-slate-700 dark:bg-slate-800 xl:block">
-              <table className="min-w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
-                    <th className="px-4 py-3">Name</th>
-                    <th className="px-4 py-3">Today</th>
-                    <th className="px-4 py-3">Since signup</th>
-                    <th className="px-4 py-3">Problems</th>
-                    <th className="px-4 py-3">Active days</th>
-                    <th className="px-4 py-3">Profile</th>
-                    <th className="px-4 py-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                  {friendsStats.map((friend) => (
-                    <tr
-                      key={friend.id}
-                      className={`text-slate-800 transition dark:text-slate-300 ${
-                        selectedFriendId === friend.id
-                          ? "bg-slate-100/80 dark:bg-slate-700/80"
-                          : "hover:bg-slate-50/80 dark:hover:bg-slate-700/50"
-                      }`}
-                    >
-                      <td className="px-4 py-4 font-medium">
+            
+            {/* Card-first scoreboard keeps the sidebar readable with large stats. */}
+            <div className="mt-6 grid min-w-0 gap-4">
+              {friendsStats.map((friend) => {
+                const isSelected = selectedFriendId === friend.id;
+                return (
+                  <article
+                    key={friend.id}
+                    className={`rounded-3xl border p-5 shadow-sm transition duration-200 ${
+                      isSelected
+                        ? "border-blue-500 bg-blue-50/55 ring-1 ring-blue-500 dark:bg-blue-950/15"
+                        : "border-neutral-200/70 bg-white/35 dark:border-neutral-800 dark:bg-neutral-950/15"
+                    }`}
+                  >
+                    <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
                         <button
                           type="button"
                           onClick={() => void onSelectFriend(friend.id, friend.name)}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-base font-semibold text-slate-900 shadow-sm transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:border-sky-700 dark:hover:bg-sky-900/40 dark:hover:text-sky-400"
-                        >
-                          {friend.name}
-                        </button>
-                      </td>
-                      <td className="px-4 py-4">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-                            friend.todaySolved > 0
-                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
-                              : "bg-slate-100 text-slate-500 dark:bg-slate-900 dark:text-slate-400"
+                          className={`inline-flex max-w-full items-center gap-1 rounded-xl border px-3 py-1.5 text-xs font-bold transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950 ${
+                            isSelected
+                              ? "border-blue-700 bg-blue-700 text-white shadow-md dark:border-blue-400 dark:bg-blue-400 dark:text-neutral-950"
+                              : "border-neutral-200 bg-white/70 text-neutral-800 hover:border-blue-300 dark:border-neutral-800 dark:bg-neutral-900/45 dark:text-neutral-100 dark:hover:border-blue-700"
                           }`}
                         >
-                          {friend.todaySolved}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 font-semibold text-rose-700 dark:text-rose-400">
-                        {friend.problemsSolvedSinceSignup}
-                      </td>
-                      <td className="px-4 py-4">
-                        {friend.todayProblems.length ? (
-                          <div className="flex flex-wrap gap-2.5">
-                            {friend.todayProblems.map((problem) => (
-                              <a
-                                key={`${friend.id}-${problem.slug ?? "noslug"}-${problem.title}`}
-                                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-sky-700 dark:hover:bg-sky-900/40 dark:hover:text-sky-400"
-                                title={problem.title}
-                                href={
-                                  problem.slug
-                                    ? `https://leetcode.com/problems/${problem.slug}/`
-                                    : undefined
-                                }
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                {problem.title}
-                                <DifficultyBadge difficulty={problem.difficulty} />
-                              </a>
-                            ))}
+                          <span className="truncate">{friend.name}</span>
+                        </button>
+                        {friend.leetcodeUsername && (
+                          <div className="mt-2">
+                            <a
+                              href={`https://leetcode.com/u/${friend.leetcodeUsername}/`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block max-w-full truncate font-mono text-xs font-semibold text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:text-blue-300 dark:focus-visible:ring-offset-neutral-950"
+                            >
+                              @{friend.leetcodeUsername}
+                            </a>
                           </div>
-                        ) : (
-                          <span className="text-xs text-slate-300 dark:text-slate-500">
-                            No problems yet
-                          </span>
                         )}
-                      </td>
-                      <td className="px-4 py-4">
-                        <span className="font-semibold text-violet-700 dark:text-violet-400">
-                          {friend.activeFraction}
+                      </div>
+                      <div className="flex shrink-0 flex-wrap items-center gap-2">
+                        <span
+                          className={`inline-flex items-center rounded-lg px-2.5 py-0.5 font-mono text-[11px] font-bold tabular-nums ${
+                            friend.todaySolved > 0
+                              ? "border border-emerald-200/60 bg-emerald-50 text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-950/25 dark:text-emerald-300"
+                              : "bg-neutral-50 text-neutral-500 dark:bg-neutral-950/20 dark:text-neutral-400"
+                          }`}
+                        >
+                          {friend.todaySolved} today
                         </span>
-                      </td>
-                      <td className="px-4 py-4">
-                        {friend.leetcodeUsername ? (
-                          <a
-                            href={`https://leetcode.com/u/${friend.leetcodeUsername}/`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-sm font-medium text-sky-600 underline decoration-sky-300 underline-offset-2 hover:text-sky-800 dark:text-sky-400 dark:decoration-sky-700 dark:hover:text-sky-300"
-                          >
-                            @{friend.leetcodeUsername}
-                          </a>
-                        ) : (
-                          <span className="text-xs text-slate-400">N/A</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-4">
                         <button
                           type="button"
                           onClick={() => void onRemoveFriend(friend.id)}
                           disabled={removingFriendId === friend.id}
-                          className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-900 dark:bg-red-900/40 dark:text-red-400 dark:hover:border-red-700 dark:hover:bg-red-900/60"
+                          className="rounded-xl border border-red-200 bg-red-50 px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-red-700 transition-colors duration-200 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:border-red-900/35 dark:bg-red-950/20 dark:text-red-300 dark:focus-visible:ring-offset-neutral-950"
                         >
-                          {removingFriendId === friend.id ? "Removing..." : "Remove"}
+                          {removingFriendId === friend.id ? "…" : "Remove"}
                         </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+                    </div>
 
-            <div className="mt-6 grid gap-3 xl:hidden">
-              {friendsStats.map((friend) => (
-                <article
-                  key={friend.id}
-                  className={`rounded-[1.5rem] border border-white/70 bg-white/80 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/80 ${
-                    selectedFriendId === friend.id
-                      ? "border-sky-300 bg-sky-50/40 dark:border-sky-700 dark:bg-sky-900/20"
-                      : ""
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => void onSelectFriend(friend.id, friend.name)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-lg font-semibold text-slate-900 shadow-sm transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:border-sky-700 dark:hover:bg-sky-900/40 dark:hover:text-sky-400"
-                      >
-                        {friend.name}
-                      </button>
-                      {friend.leetcodeUsername && (
-                        <div className="mt-1">
-                          <a
-                            href={`https://leetcode.com/u/${friend.leetcodeUsername}/`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-xs font-medium text-sky-600 underline decoration-sky-300 underline-offset-2 hover:text-sky-800 dark:text-sky-400 dark:decoration-sky-700 dark:hover:text-sky-300"
-                          >
-                            @{friend.leetcodeUsername}
-                          </a>
+                    <div className="mt-4 grid min-w-0 grid-cols-2 gap-3">
+                      <div className="min-w-0 rounded-2xl border border-neutral-200/70 bg-neutral-50/65 p-3 dark:border-neutral-800 dark:bg-neutral-950/35">
+                        <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                          Active days
+                        </p>
+                        <p className="mt-1 break-words font-mono text-base font-extrabold text-blue-700 tabular-nums dark:text-blue-300">
+                          {friend.activeFraction}
+                        </p>
+                      </div>
+                      <div className="min-w-0 rounded-2xl border border-neutral-200/70 bg-neutral-50/65 p-3 dark:border-neutral-800 dark:bg-neutral-950/35">
+                        <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                          Total Solved
+                        </p>
+                        <p className="mt-1 break-words font-mono text-base font-extrabold text-neutral-900 tabular-nums dark:text-neutral-100">
+                          {friend.problemsSolvedSinceSignup}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 border-t border-neutral-200/70 pt-4 dark:border-neutral-800">
+                      <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                        Problems solved today
+                      </p>
+                      {friend.todayProblems.length ? (
+                        <div className="mt-2.5 flex min-w-0 flex-wrap gap-2">
+                          {friend.todayProblems.map((problem) => (
+                            <a
+                              key={`${friend.id}-${problem.slug ?? "noslug"}-${problem.title}`}
+                              className="inline-flex max-w-full min-w-0 items-center gap-1 rounded-lg border border-neutral-200/70 bg-white/40 px-2 py-1 text-xs text-neutral-700 transition-colors duration-200 hover:border-blue-300 hover:bg-blue-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-neutral-800 dark:bg-neutral-950/15 dark:text-neutral-300 dark:hover:border-blue-700 dark:focus-visible:ring-offset-neutral-950"
+                              href={
+                                problem.slug
+                                  ? `https://leetcode.com/problems/${problem.slug}/`
+                                  : undefined
+                              }
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              <span className="min-w-0 truncate">{problem.title}</span>
+                              <DifficultyBadge difficulty={problem.difficulty} />
+                            </a>
+                          ))}
                         </div>
+                      ) : (
+                        <p className="mt-1.5 text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                          No problems solved today yet.
+                        </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          friend.todaySolved > 0
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
-                            : "bg-slate-100 text-slate-500 dark:bg-slate-900 dark:text-slate-400"
-                        }`}
-                      >
-                        {friend.todaySolved} today
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => void onRemoveFriend(friend.id)}
-                        disabled={removingFriendId === friend.id}
-                        className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-900 dark:bg-red-900/40 dark:text-red-400 dark:hover:border-red-700 dark:hover:bg-red-900/60"
-                      >
-                        {removingFriendId === friend.id ? "Removing..." : "Remove"}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl bg-slate-50 p-3 dark:bg-slate-900">
-                      <p className="text-xs uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
-                        Active days
-                      </p>
-                      <p className="mt-2 text-xl font-semibold text-violet-700 dark:text-violet-400">
-                        {friend.activeFraction}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl bg-slate-50 p-3 dark:bg-slate-900">
-                      <p className="text-xs uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
-                        Total Solved Since signup
-                      </p>
-                      <p className="mt-2 text-xl font-semibold text-rose-700 dark:text-rose-400">
-                        {friend.problemsSolvedSinceSignup}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-4">
-                    <p className="text-xs uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
-                      Problems
-                    </p>
-                    {friend.todayProblems.length ? (
-                      <div className="mt-2 flex flex-wrap gap-2.5">
-                        {friend.todayProblems.map((problem) => (
-                          <a
-                            key={`${friend.id}-${problem.slug ?? "noslug"}-${problem.title}`}
-                            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-sky-700 dark:hover:bg-sky-900/40 dark:hover:text-sky-400"
-                            href={
-                              problem.slug
-                                ? `https://leetcode.com/problems/${problem.slug}/`
-                                : undefined
-                            }
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            {problem.title}
-                            <DifficultyBadge difficulty={problem.difficulty} />
-                          </a>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                        No problems solved today yet.
-                      </p>
-                    )}
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </div>
           </>
         )}

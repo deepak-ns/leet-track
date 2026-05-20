@@ -1,9 +1,0 @@
-{
-  "css.lint.unknownAtRules": "ignore",
-  "tailwindCSS.experimental.classRegex": [
-    [
-      "accentStyles\\s*=\\s*\\{[^}]*bar:\\s*\"([^\"]*)\"",
-      "\"([^\"]*)\""
-    ]
-  ]
-}

@@ -8,8 +8,8 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="p-2 rounded-lg hover:bg-white/10 transition-colors"
-      aria-label="Toggle theme"
+      className="rounded-xl border border-white/10 p-2 text-blue-100 transition-colors duration-200 hover:border-blue-300/35 hover:bg-blue-200/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+      aria-label={`Switch to ${theme === "light" ? "dark" : "light"} theme`}
       type="button"
     >
       {theme === "light" ? (
@@ -24,6 +24,7 @@ export function ThemeToggle() {
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
+          aria-hidden="true"
         >
           <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
         </svg>
@@ -39,6 +40,7 @@ export function ThemeToggle() {
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
+          aria-hidden="true"
         >
           <circle cx="12" cy="12" r="4" />
           <path d="M12 2v2" />

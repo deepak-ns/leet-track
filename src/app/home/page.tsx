@@ -59,7 +59,7 @@ export default function DashboardPage() {
         <div className="max-w-xs rounded-[2rem] border border-slate-800 bg-slate-900/95 p-10 shadow-2xl shadow-slate-950/20">
           <div className="mx-auto flex flex-col items-center gap-3">
             <div className="h-20 w-20 animate-spin rounded-full border-4 border-slate-700 border-t-sky-500" />
-            <p className="text-sm font-medium text-slate-200">Loading...</p>
+            <p className="text-sm font-medium text-slate-200">Loading…</p>
           </div>
         </div>
       </div>
@@ -75,44 +75,54 @@ export default function DashboardPage() {
     >
       <ErrorBanner message={errorMessage} />
       <MetricsSection cards={cards} loading={loading} />
-      <TodayProblemsSection
-        loading={loading}
-        todaySolved={stats.todaySolved}
-        problems={stats.todaySolvedProblems}
-      />
-      <FriendsSection
-        searchTerm={friendSearch.searchTerm}
-        searchResults={friendSearch.searchResults}
-        searchLoading={friendSearch.searchLoading}
-        showSuggestions={friendSearch.showSuggestions}
-        friendError={combinedFriendError}
-        friendMessage={friendSearch.friendMessage}
-        friendsStats={friendsStats}
-        friendsStatsLoading={friendsStatsLoading}
-        selectedFriendId={history.selectedFriendId}
-        removingFriendId={friendSearch.removingFriendId}
-        onSearchChange={(value) => {
-          setFriendsLoadError(null);
-          friendSearch.handleSearchInputChange(value);
-        }}
-        onSearch={friendSearch.handleFriendSearch}
-        onShowSuggestions={() => friendSearch.setShowSuggestions(true)}
-        onHideSuggestions={() => friendSearch.setShowSuggestions(false)}
-        onAddFriend={friendSearch.handleAddFriend}
-        onRemoveFriend={friendSearch.handleRemoveFriend}
-        onSelectFriend={history.loadFriendHistory}
-      />
-      <HistorySection
-        selectedFriendName={history.selectedFriendName}
-        showingUserHistory={history.showingUserHistory}
-        groupedHistory={history.groupedHistory}
-        totalCount={history.activeHistory.length}
-        friendHistoryLoading={history.friendHistoryLoading}
-        userHistoryLoading={history.userHistoryLoading}
-        friendHistoryError={history.friendHistoryError}
-        userHistoryError={history.userHistoryError}
-        onLoadUserHistory={history.loadUserHistory}
-      />
+
+      <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,30rem)] 2xl:grid-cols-[minmax(0,1fr)_minmax(22rem,32rem)]">
+        {/* Main social accountability area */}
+        <div className="min-w-0 space-y-6">
+          <FriendsSection
+            searchTerm={friendSearch.searchTerm}
+            searchResults={friendSearch.searchResults}
+            searchLoading={friendSearch.searchLoading}
+            showSuggestions={friendSearch.showSuggestions}
+            friendError={combinedFriendError}
+            friendMessage={friendSearch.friendMessage}
+            friendsStats={friendsStats}
+            friendsStatsLoading={friendsStatsLoading}
+            selectedFriendId={history.selectedFriendId}
+            removingFriendId={friendSearch.removingFriendId}
+            onSearchChange={(value) => {
+              setFriendsLoadError(null);
+              friendSearch.handleSearchInputChange(value);
+            }}
+            onSearch={friendSearch.handleFriendSearch}
+            onShowSuggestions={() => friendSearch.setShowSuggestions(true)}
+            onHideSuggestions={() => friendSearch.setShowSuggestions(false)}
+            onAddFriend={friendSearch.handleAddFriend}
+            onRemoveFriend={friendSearch.handleRemoveFriend}
+            onSelectFriend={history.loadFriendHistory}
+          />
+        </div>
+
+        {/* Secondary personal activity area */}
+        <div className="min-w-0 space-y-6">
+          <TodayProblemsSection
+            loading={loading}
+            todaySolved={stats.todaySolved}
+            problems={stats.todaySolvedProblems}
+          />
+          <HistorySection
+            selectedFriendName={history.selectedFriendName}
+            showingUserHistory={history.showingUserHistory}
+            groupedHistory={history.groupedHistory}
+            totalCount={history.activeHistory.length}
+            friendHistoryLoading={history.friendHistoryLoading}
+            userHistoryLoading={history.userHistoryLoading}
+            friendHistoryError={history.friendHistoryError}
+            userHistoryError={history.userHistoryError}
+            onLoadUserHistory={history.loadUserHistory}
+          />
+        </div>
+      </div>
     </DashboardPageShell>
   );
 }

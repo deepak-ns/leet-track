@@ -7,37 +7,34 @@ type MetricCardProps = {
 
 const accentStyles = {
   blue: {
-    bar: "from-sky-400 to-blue-600",
-    num: "text-blue-700 dark:text-blue-400",
-    badge: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
-    glow: "shadow-sky-500/10",
+    bar: "from-blue-500 to-sky-600 dark:from-blue-300 dark:to-sky-400",
+    num: "text-blue-700 dark:text-blue-300",
+    badge: "border border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-800/45 dark:bg-blue-950/25 dark:text-blue-300",
+    glow: "shadow-blue-700/5",
   },
   green: {
-    bar: "from-emerald-400 to-teal-600",
-    num: "text-emerald-700 dark:text-emerald-400",
-    badge:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
-    glow: "shadow-emerald-500/10",
+    bar: "from-emerald-500 to-teal-600 dark:from-emerald-300 dark:to-teal-400",
+    num: "text-emerald-700 dark:text-emerald-300",
+    badge: "border border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800/45 dark:bg-emerald-950/25 dark:text-emerald-300",
+    glow: "shadow-emerald-500/5",
   },
   amber: {
-    bar: "from-amber-300 to-orange-500",
-    num: "text-amber-700 dark:text-amber-400",
-    badge:
-      "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
-    glow: "shadow-amber-500/10",
+    bar: "from-slate-500 to-blue-600 dark:from-neutral-300 dark:to-blue-400",
+    num: "text-neutral-800 dark:text-neutral-200",
+    badge: "border border-neutral-200 bg-neutral-50 text-neutral-800 dark:border-neutral-700/60 dark:bg-neutral-900/35 dark:text-neutral-200",
+    glow: "shadow-neutral-700/5",
   },
   rose: {
-    bar: "from-rose-400 to-pink-600",
-    num: "text-rose-700 dark:text-rose-400",
-    badge: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400",
-    glow: "shadow-rose-500/10",
+    bar: "from-blue-600 to-indigo-700 dark:from-blue-300 dark:to-indigo-400",
+    num: "text-blue-800 dark:text-blue-300",
+    badge: "border border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-800/45 dark:bg-blue-950/25 dark:text-blue-300",
+    glow: "shadow-blue-700/5",
   },
   violet: {
-    bar: "from-violet-400 to-indigo-600",
-    num: "text-violet-700 dark:text-violet-400",
-    badge:
-      "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400",
-    glow: "shadow-violet-500/10",
+    bar: "from-neutral-500 to-slate-700 dark:from-neutral-300 dark:to-slate-400",
+    num: "text-neutral-800 dark:text-neutral-200",
+    badge: "border border-neutral-200 bg-neutral-50 text-neutral-800 dark:border-neutral-700/60 dark:bg-neutral-900/35 dark:text-neutral-200",
+    glow: "shadow-neutral-700/5",
   },
 };
 
@@ -51,23 +48,23 @@ export function MetricCard({
 
   return (
     <div
-      className={`metric-shell glass-card rounded-[1.6rem] p-5 shadow-lg ${s.glow}`}
+      className={`metric-shell glass-card group min-w-0 rounded-2xl border border-neutral-200/70 p-5 shadow-sm transition duration-300 dark:border-neutral-800 ${s.glow}`}
     >
       <div
-        className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${s.bar}`}
+        className={`absolute inset-x-0 top-0 h-[3px] origin-left bg-gradient-to-r transition-transform duration-300 group-hover:scale-x-110 ${s.bar}`}
       />
       <div
-        className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${s.badge}`}
+        className={`inline-flex max-w-full rounded-lg px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider transition-transform duration-300 group-hover:-translate-y-0.5 ${s.badge}`}
       >
-        {label}
+        <span className="truncate">{label}</span>
       </div>
       <p
-        className={`mt-4 text-4xl font-semibold tracking-tight tabular-nums ${s.num}`}
+        className={`mt-4 min-w-0 break-words font-mono text-[clamp(1.65rem,4vw,2.25rem)] font-extrabold leading-none tracking-tight tabular-nums transition-transform duration-300 group-hover:translate-x-0.5 ${s.num}`}
       >
         {value}
       </p>
       {subtitle && (
-        <p className="mt-2 max-w-[18rem] text-sm leading-6 text-slate-500 dark:text-slate-400">
+        <p className="mt-2 min-w-0 break-words text-xs font-medium leading-5 text-neutral-500 dark:text-neutral-400">
           {subtitle}
         </p>
       )}
