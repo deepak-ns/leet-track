@@ -75,54 +75,44 @@ export default function DashboardPage() {
     >
       <ErrorBanner message={errorMessage} />
       <MetricsSection cards={cards} loading={loading} />
-
-      <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,30rem)] 2xl:grid-cols-[minmax(0,1fr)_minmax(22rem,32rem)]">
-        {/* Main social accountability area */}
-        <div className="min-w-0 space-y-6">
-          <FriendsSection
-            searchTerm={friendSearch.searchTerm}
-            searchResults={friendSearch.searchResults}
-            searchLoading={friendSearch.searchLoading}
-            showSuggestions={friendSearch.showSuggestions}
-            friendError={combinedFriendError}
-            friendMessage={friendSearch.friendMessage}
-            friendsStats={friendsStats}
-            friendsStatsLoading={friendsStatsLoading}
-            selectedFriendId={history.selectedFriendId}
-            removingFriendId={friendSearch.removingFriendId}
-            onSearchChange={(value) => {
-              setFriendsLoadError(null);
-              friendSearch.handleSearchInputChange(value);
-            }}
-            onSearch={friendSearch.handleFriendSearch}
-            onShowSuggestions={() => friendSearch.setShowSuggestions(true)}
-            onHideSuggestions={() => friendSearch.setShowSuggestions(false)}
-            onAddFriend={friendSearch.handleAddFriend}
-            onRemoveFriend={friendSearch.handleRemoveFriend}
-            onSelectFriend={history.loadFriendHistory}
-          />
-        </div>
-
-        {/* Secondary personal activity area */}
-        <div className="min-w-0 space-y-6">
-          <TodayProblemsSection
-            loading={loading}
-            todaySolved={stats.todaySolved}
-            problems={stats.todaySolvedProblems}
-          />
-          <HistorySection
-            selectedFriendName={history.selectedFriendName}
-            showingUserHistory={history.showingUserHistory}
-            groupedHistory={history.groupedHistory}
-            totalCount={history.activeHistory.length}
-            friendHistoryLoading={history.friendHistoryLoading}
-            userHistoryLoading={history.userHistoryLoading}
-            friendHistoryError={history.friendHistoryError}
-            userHistoryError={history.userHistoryError}
-            onLoadUserHistory={history.loadUserHistory}
-          />
-        </div>
-      </div>
+      <TodayProblemsSection
+        loading={loading}
+        todaySolved={stats.todaySolved}
+        problems={stats.todaySolvedProblems}
+      />
+      <FriendsSection
+        searchTerm={friendSearch.searchTerm}
+        searchResults={friendSearch.searchResults}
+        searchLoading={friendSearch.searchLoading}
+        showSuggestions={friendSearch.showSuggestions}
+        friendError={combinedFriendError}
+        friendMessage={friendSearch.friendMessage}
+        friendsStats={friendsStats}
+        friendsStatsLoading={friendsStatsLoading}
+        selectedFriendId={history.selectedFriendId}
+        removingFriendId={friendSearch.removingFriendId}
+        onSearchChange={(value) => {
+          setFriendsLoadError(null);
+          friendSearch.handleSearchInputChange(value);
+        }}
+        onSearch={friendSearch.handleFriendSearch}
+        onShowSuggestions={() => friendSearch.setShowSuggestions(true)}
+        onHideSuggestions={() => friendSearch.setShowSuggestions(false)}
+        onAddFriend={friendSearch.handleAddFriend}
+        onRemoveFriend={friendSearch.handleRemoveFriend}
+        onSelectFriend={history.loadFriendHistory}
+      />
+      <HistorySection
+        selectedFriendName={history.selectedFriendName}
+        showingUserHistory={history.showingUserHistory}
+        groupedHistory={history.groupedHistory}
+        totalCount={history.activeHistory.length}
+        friendHistoryLoading={history.friendHistoryLoading}
+        userHistoryLoading={history.userHistoryLoading}
+        friendHistoryError={history.friendHistoryError}
+        userHistoryError={history.userHistoryError}
+        onLoadUserHistory={history.loadUserHistory}
+      />
     </DashboardPageShell>
   );
 }
