@@ -195,7 +195,9 @@ export function FriendsSection({
                     <div className="flex items-start justify-between gap-3">
                       <button
                         type="button"
-                        onClick={() => void onSelectFriend(friend.id, friend.name)}
+                        onClick={() =>
+                          void onSelectFriend(friend.id, friend.name)
+                        }
                         className={`inline-flex max-w-full items-center gap-1 rounded-xl border px-3 py-1.5 text-sm font-bold transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-950 ${
                           isSelected
                             ? "border-blue-700 bg-blue-700 text-white shadow-md dark:border-blue-400 dark:bg-blue-400 dark:text-neutral-950"
@@ -272,7 +274,7 @@ export function FriendsSection({
 
                     <div className="mt-3 rounded-xl border border-neutral-200/70 bg-white/60 p-3 dark:border-neutral-800 dark:bg-neutral-950/20">
                       <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
-                        Problems Today
+                        Problems solved in the last 24 hours
                       </p>
 
                       {friend.todayProblems.length ? (
@@ -292,7 +294,9 @@ export function FriendsSection({
                               <span className="min-w-0 truncate">
                                 {problem.title}
                               </span>
-                              <DifficultyBadge difficulty={problem.difficulty} />
+                              <DifficultyBadge
+                                difficulty={problem.difficulty}
+                              />
                             </a>
                           ))}
                         </div>
@@ -315,7 +319,7 @@ export function FriendsSection({
                       "Name",
                       "Today",
                       "Since Signup",
-                      "Problems",
+                      "Problems solved in the last 24 hours",
                       "Active Days",
                       "Profile",
                       "Actions",
@@ -378,7 +382,7 @@ export function FriendsSection({
                           {friend.problemsSolvedSinceSignup}
                         </td>
 
-                        {/* Problems solved today */}
+                        {/* Problems solved in the last 24 hours */}
                         <td className="px-4 py-3.5">
                           {friend.todayProblems.length ? (
                             <div className="flex flex-wrap gap-2">

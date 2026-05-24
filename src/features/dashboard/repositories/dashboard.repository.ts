@@ -126,6 +126,7 @@ export async function getFriendsDashboardData(
   today: string,
 ): Promise<FriendDashboardData[]> {
   if (!friendIds.length) return [];
+  const last24HoursIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
   const [
     profilesResult,
@@ -146,9 +147,9 @@ export async function getFriendsDashboardData(
 
     supabase
       .from("solved_problems")
-      .select("user_id, problem_title, problem_slug, problem_difficulty")
+      .select("user_id, problem_title, problem_slug, problem_difficulty, created_at")
       .in("user_id", friendIds)
-      .eq("solved_date", today),
+      .gte("created_at", last24HoursIso),
 
     // Fetch all solved_problems with solved_date for these friends.
     // Used to compute both sinceSignupCount and activeDays per friend,
@@ -190,7 +191,7 @@ export async function getFriendsDashboardData(
     activeDateSets.get(r.user_id)!.add(r.solved_date);
   }
 
-  // Group today's problems by user_id
+  // Group problems solved in the last 24 hours by user_id
   const problemsByUser = new Map<string, TodayProblemRow[]>();
   for (const row of todayProblemsResult.data ?? []) {
     const uid = (row as { user_id: string } & TodayProblemRow).user_id;
